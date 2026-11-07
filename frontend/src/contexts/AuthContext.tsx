@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Unable to verify your LFMS account.";
 
 async function fetchIdentity(): Promise<AuthIdentity> {
-  const response = await api.get<MeResponse>("/auth/me");
+  const response = await api.get<MeResponse>("/v1/auth/me");
   const value = response.data?.data?.user;
   if (!value || typeof value.id !== "string") throw new Error("The LFMS API did not return a valid identity.");
   return { id: value.id, email: typeof value.email === "string" ? value.email : null };
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessStatus("loading");
     setProfile(null); setRoles([]); setPermissions([]);
     try {
-      const response = await api.get<AccessResponse>("/auth/access");
+      const response = await api.get<AccessResponse>("/v1/auth/access");
       const access = response.data?.data;
       if (!access || !Array.isArray(access.roles) || !Array.isArray(access.permissions)) throw new Error("Invalid authorization response.");
       setProfile(access.profile); setRoles(access.roles); setPermissions(access.permissions); setAccessStatus("ready");
