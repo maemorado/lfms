@@ -39,6 +39,10 @@ export async function getFacility(id: string) {
   const response = await api.get<Envelope<{ facility: Facility }>>(`/v1/facilities/${id}`);
   return response.data.data.facility;
 }
+export async function checkFacilityAvailability(id: string, start_at: string, end_at: string) {
+  const response = await api.get<Envelope<{ facility_id: string; facility_status: string; is_available: boolean; has_approved_conflict: boolean; capacity: number; checked_start_at: string; checked_end_at: string }>>(`/v1/facilities/${id}/availability`, { params: { start_at, end_at } });
+  return response.data.data;
+}
 export async function getFacilityLookups() {
   const response = await api.get<Envelope<FacilityLookups>>("/v1/facilities/lookups");
   return response.data.data;

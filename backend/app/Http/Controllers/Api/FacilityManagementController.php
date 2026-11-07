@@ -26,6 +26,15 @@ final class FacilityManagementController extends Controller
         return ApiResponse::success($this->facilities->lookups(), 'Facility options retrieved successfully.');
     }
 
+    public function availability(Request $request, string $facilityId): JsonResponse
+    {
+        $data = $request->validate([
+            'start_at' => ['required', 'date'],
+            'end_at' => ['required', 'date', 'after:start_at'],
+        ]);
+        return ApiResponse::success($this->facilities->availability($facilityId, $data['start_at'], $data['end_at']), 'Facility availability checked successfully.');
+    }
+
     public function show(string $facilityId): JsonResponse
     {
         return ApiResponse::success(['facility' => new FacilityResource($this->facilities->find($facilityId))], 'Facility details retrieved successfully.');

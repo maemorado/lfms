@@ -45,6 +45,25 @@ final class FacilityManagementService
         ];
     }
 
+    public function availability(string $id, string $startAt, string $endAt): array
+    {
+        $start = \\Carbon\\CarbonImmutable::parse($startAt);
+        $end = \\Carbon\\CarbonImmutable::parse($endAt);
+        if ($end->lessThanOrEqualTo($start) || $start->lessThanOrEqualTo(now())) {
+            throw new FacilityReservationException('Choose a future start time and an end time after it.', 422);
+        }
+        $facility = DB::table('facilities')->where('id', $id)->first(['id','name','status','capacity']);
+        if (!$facility) throw new FacilityReservationException('Facility not found.', 404);
+        $conflict = DB::table('reservations')->where('facility_id', $id)->where('status', 'approved')
+            ->where('start_at', '<', $end)->where('end_at', '>', $start)->exists();
+        return [
+            'facility_id' => $id, 'facility_status' => $facility->status,
+            'is_available' => $facility->status === 'available' && !$conflict,
+            'has_approved_conflict' => $conflict, 'capacity' => (int)$facility->capacity,
+            'checked_start_at' => $start->toIso8601String(), 'checked_end_at' => $end->toIso8601String(),
+        ];
+    }
+
     public function create(string $actorId, array $data): array
     {
         return DB::transaction(function () use ($actorId, $data): array {

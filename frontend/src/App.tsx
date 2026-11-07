@@ -4,6 +4,8 @@ import DashboardPage from "@/pages/DashboardPage";
 import UserManagementPage from "@/pages/UserManagementPage";
 import ProfilePage from "@/pages/ProfilePage";
 import InviteAcceptancePage from "@/pages/InviteAcceptancePage";
+import FacilityManagementPage from "@/pages/FacilityManagementPage";
+import ReservationManagementPage from "@/pages/ReservationManagementPage";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@/routes/PublicOnlyRoute";
 
@@ -40,6 +42,8 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UserManagementPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/facilities" element={<FacilityManagementPage />} />
+        <Route path="/reservations" element={<ReservationManagementPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

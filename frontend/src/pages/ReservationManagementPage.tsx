@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, CalendarDays, Check, Clock3, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Plus, RefreshCw, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { cancelReservation, createReservation, decideReservation, getApiError, getFacilityLookups, listFacilities, listReservations, updateReservation, type Facility, type Pagination, type Reservation, type ReservationInput } from "@/services/facility-reservation";
+import { cancelReservation, checkFacilityAvailability, createReservation, decideReservation, getApiError, getFacilityLookups, getReservation, listFacilities, listReservations, updateReservation, type Facility, type Pagination, type Reservation, type ReservationInput } from "@/services/facility-reservation";
 
 const emptyForm = { facility_id: "", start_at: "", end_at: "", purpose: "", subject_course: "", participant_count: 1 };
 const statuses = ["pending","approved","rejected","cancelled","completed"] as const;
@@ -29,6 +29,7 @@ export default function ReservationManagementPage() {
   const [form,setForm] = useState(emptyForm);
   const [editing,setEditing] = useState<Reservation | null>(null);
   const [selected,setSelected] = useState<Reservation | null>(null);
+  const [availabilityMessage,setAvailabilityMessage] = useState<string | null>(null);
   const [loading,setLoading] = useState(true);
   const [saving,setSaving] = useState(false);
   const [error,setError] = useState<string | null>(null);
@@ -60,6 +61,18 @@ export default function ReservationManagementPage() {
       await load();
     } catch(cause) { setError(getApiError(cause)); }
     finally { setSaving(false); }
+  };
+  const checkAvailability = async () => {
+    if (!form.facility_id || !form.start_at || !form.end_at) { setAvailabilityMessage("Select a facility, start time, and end time first."); return; }
+    try {
+      const result = await checkFacilityAvailability(form.facility_id,new Date(form.start_at).toISOString(),new Date(form.end_at).toISOString());
+      setAvailabilityMessage(result.is_available ? "No approved reservation conflicts were found. Admin approval is still required." : "This facility is unavailable for the selected time.");
+    } catch(cause) { setAvailabilityMessage(getApiError(cause)); }
+  };
+  const openDetails = async (item: Reservation) => {
+    setSelected(item);
+    try { setSelected(await getReservation(item.id)); }
+    catch(cause) { setError(getApiError(cause)); }
   };
   const cancel = async (item: Reservation) => {
     const reason = window.prompt("Why are you cancelling this reservation?");
@@ -94,7 +107,7 @@ export default function ReservationManagementPage() {
           <label className="text-sm text-slate-600">Subject / course<input value={form.subject_course} onChange={e=>setForm({...form,subject_course:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"/></label>
           <label className="text-sm text-slate-600 sm:col-span-2 lg:col-span-1">Purpose<textarea required minLength={3} value={form.purpose} onChange={e=>setForm({...form,purpose:e.target.value})} rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"/></label>
         </div>
-        <p className="mt-3 text-xs text-slate-500">Requests start as pending. An Admin must approve them before the facility is reserved. Overlapping approved bookings are rejected by the server and PostgreSQL.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" onClick={()=>void checkAvailability()} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Check availability</button>{availabilityMessage && <p role="status" className="text-xs text-slate-600">{availabilityMessage}</p>}</div><p className="mt-3 text-xs text-slate-500">Requests start as pending. An Admin must approve them before the facility is reserved. Overlapping approved bookings are rejected by the server and PostgreSQL.</p>
         <button disabled={saving || !facilities.length} className="mt-5 rounded-xl bg-teal-800 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : editing ? "Save changes" : "Submit request"}</button>
       </form>}
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -107,7 +120,7 @@ export default function ReservationManagementPage() {
           <label className="text-xs text-slate-500">To<input type="date" value={toDate} onChange={e=>{setPage(1);setToDate(e.target.value);}} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-700"/></label>
         </div>
         <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Facility / Requester</th><th className="px-3 py-3">Schedule</th><th className="px-3 py-3">Purpose</th><th className="px-3 py-3">Status</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-slate-100">
-          {loading ? <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-500">Loading reservations…</td></tr> : items.length===0 ? <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-500">No reservations found.</td></tr> : items.map(item=><tr key={item.id} className="hover:bg-slate-50"><td className="px-3 py-3"><p className="font-medium text-slate-900">{item.facility.name}</p><p className="mt-0.5 text-xs text-slate-500">{canManage ? item.requester.full_name : "Your request"} · {item.facility.code}</p></td><td className="px-3 py-3"><p>{formatDate(item.start_at)}</p><p className="text-xs text-slate-500">to {formatDate(item.end_at)}</p></td><td className="max-w-[240px] px-3 py-3 text-slate-600"><span className="line-clamp-2">{item.purpose}</span></td><td className="px-3 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{item.status}</span></td><td className="px-3 py-3"><div className="flex justify-end gap-1"><button onClick={()=>setSelected(item)} className="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-semibold">Details</button>{canCreate && item.requester_id===identity?.id && item.status==="pending" && <button onClick={()=>startEdit(item)} className="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-semibold">Edit</button>}{canManage && item.status==="pending" && <><button title="Approve" onClick={()=>void decide(item,"approved")} className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Check size={16}/></button><button title="Reject" onClick={()=>void decide(item,"rejected")} className="rounded-lg bg-red-50 p-2 text-red-700"><X size={16}/></button></>}{(canManage || item.requester_id===identity?.id) && ["pending","approved"].includes(item.status) && new Date(item.start_at)>new Date() && <button onClick={()=>void cancel(item)} className="rounded-lg border border-slate-300 px-2 py-2 text-xs">Cancel</button>}</div></td></tr>)}
+          {loading ? <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-500">Loading reservations…</td></tr> : items.length===0 ? <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-500">No reservations found.</td></tr> : items.map(item=><tr key={item.id} className="hover:bg-slate-50"><td className="px-3 py-3"><p className="font-medium text-slate-900">{item.facility.name}</p><p className="mt-0.5 text-xs text-slate-500">{canManage ? item.requester.full_name : "Your request"} · {item.facility.code}</p></td><td className="px-3 py-3"><p>{formatDate(item.start_at)}</p><p className="text-xs text-slate-500">to {formatDate(item.end_at)}</p></td><td className="max-w-[240px] px-3 py-3 text-slate-600"><span className="line-clamp-2">{item.purpose}</span></td><td className="px-3 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{item.status}</span></td><td className="px-3 py-3"><div className="flex justify-end gap-1"><button onClick={()=>void openDetails(item)} className="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-semibold">Details</button>{canCreate && item.requester_id===identity?.id && item.status==="pending" && <button onClick={()=>startEdit(item)} className="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-semibold">Edit</button>}{canManage && item.status==="pending" && <><button title="Approve" onClick={()=>void decide(item,"approved")} className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Check size={16}/></button><button title="Reject" onClick={()=>void decide(item,"rejected")} className="rounded-lg bg-red-50 p-2 text-red-700"><X size={16}/></button></>}{(canManage || item.requester_id===identity?.id) && ["pending","approved"].includes(item.status) && new Date(item.start_at)>new Date() && <button onClick={()=>void cancel(item)} className="rounded-lg border border-slate-300 px-2 py-2 text-xs">Cancel</button>}</div></td></tr>)}
         </tbody></table></div>
         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm text-slate-500"><span>{pagination ? `${pagination.total} reservations` : ""}</span><div className="flex items-center gap-2"><button disabled={!pagination || page<=1 || loading} onClick={()=>setPage(p=>p-1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Previous</button><span>{pagination?.current_page ?? page} / {pagination?.last_page ?? 1}</span><button disabled={!pagination || page>=(pagination.last_page) || loading} onClick={()=>setPage(p=>p+1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Next</button></div></div>
       </div>

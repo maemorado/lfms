@@ -37,6 +37,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::prefix('facilities')->name('facilities.')->middleware('permission:facilities.view')->group(function (): void {
                 Route::get('/lookups', [FacilityManagementController::class, 'lookups'])->name('lookups');
                 Route::get('/', [FacilityManagementController::class, 'index'])->name('index');
+                Route::get('/{facilityId}/availability', [FacilityManagementController::class, 'availability'])->whereUuid('facilityId')->name('availability');
                 Route::get('/{facilityId}', [FacilityManagementController::class, 'show'])->whereUuid('facilityId')->name('show');
                 Route::middleware('permission:facilities.manage')->group(function (): void {
                     Route::post('/', [FacilityManagementController::class, 'store'])->name('store');
