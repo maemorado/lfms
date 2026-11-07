@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Authorization\SupabaseAuthorizationService;
+use App\Support\Api\ApiResponse;
 use Closure;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Http\Request;
@@ -20,24 +21,21 @@ class LoadLfmsAuthorizationContext
         $token = $request->bearerToken();
 
         if (!is_array($identity) || !is_string($identity['id'] ?? null) || !is_string($token) || $token === '') {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            return ApiResponse::error('Authentication is required.', 401, 'unauthenticated');
         }
 
         try {
             $context = $this->authorization->resolve($token, $identity['id']);
         } catch (Throwable) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authorization data is temporarily unavailable.',
-            ], 503);
+            return ApiResponse::error('Authorization data is temporarily unavailable.', 503, 'authorization_unavailable');
         }
 
         if ($context === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your LFMS account has no active profile or authorized role. Contact an administrator.',
-                'code' => 'role_not_assigned',
-            ], 403);
+            return ApiResponse::error(
+                'Your LFMS account has no active profile or authorized role. Contact an administrator.',
+                403,
+                'role_not_assigned',
+            );
         }
 
         $request->attributes->set('lfms_authorization', $context);
