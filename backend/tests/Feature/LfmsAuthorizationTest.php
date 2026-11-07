@@ -21,19 +21,8 @@ class LfmsAuthorizationTest extends TestCase
         ]);
     }
 
-    private function fakeVerifiedUser(): void
-    {
-        Http::fake([
-            'https://example.supabase.co/auth/v1/user' => Http::response([
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'email' => 'person@example.test',
-            ], 200),
-        ]);
-    }
-
     public function test_unassigned_user_is_authenticated_but_denied_access(): void
     {
-        $this->fakeVerifiedUser();
         Http::fake([
             'https://example.supabase.co/auth/v1/user' => Http::response([
                 'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
@@ -139,5 +128,4 @@ class LfmsAuthorizationTest extends TestCase
 
         $this->assertSame(403, $response->getStatusCode());
     }
-
 }
