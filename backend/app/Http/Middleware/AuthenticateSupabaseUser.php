@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Api\ApiResponse;
 use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
@@ -17,17 +18,11 @@ class AuthenticateSupabaseUser
         $publishableKey = (string) config('supabase.publishable_key');
 
         if (!$token) {
-            return response()->json([
-                'success' => false,
-                'message' => 'A bearer token is required.',
-            ], 401);
+            return ApiResponse::error('A bearer token is required.', 401, 'unauthenticated');
         }
 
         if ($supabaseUrl === '' || $publishableKey === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication is not configured on the server.',
-            ], 503);
+            return ApiResponse::error('Authentication is not configured on the server.', 503, 'authentication_unavailable');
         }
 
         try {
@@ -35,35 +30,22 @@ class AuthenticateSupabaseUser
                 ->withHeaders(['apikey' => $publishableKey])
                 ->withToken($token)
                 ->timeout((int) config('supabase.auth_user_timeout', 10))
-                ->get($supabaseUrl . '/auth/v1/user');
+                ->get($supabaseUrl.'/auth/v1/user');
         } catch (ConnectionException) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication service is temporarily unavailable.',
-            ], 503);
+            return ApiResponse::error('Authentication service is temporarily unavailable.', 503, 'authentication_unavailable');
         }
 
         if (!$authResponse->successful()) {
             if (in_array($authResponse->status(), [400, 401, 403], true)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The provided access token is invalid or expired.',
-                ], 401);
+                return ApiResponse::error('The provided access token is invalid or expired.', 401, 'unauthenticated');
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication service is temporarily unavailable.',
-            ], 503);
+            return ApiResponse::error('Authentication service is temporarily unavailable.', 503, 'authentication_unavailable');
         }
 
         $user = $authResponse->json();
-
         if (!is_array($user) || !isset($user['id']) || !is_string($user['id'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication service returned an invalid user response.',
-            ], 503);
+            return ApiResponse::error('Authentication service returned an invalid user response.', 503, 'authentication_unavailable');
         }
 
         $request->attributes->set('supabase_user', [
