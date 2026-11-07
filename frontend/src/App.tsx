@@ -1,0 +1,3 @@
+import { Route, Routes } from "react-router-dom";
+function HomePage() { return <main className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-16"><p className="text-sm font-semibold tracking-[0.2em] text-primary">LFMS</p><h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">Laboratory and Facility Management System</h1><p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">The application foundation is ready for the next development phase.</p></main>; }
+export default function App() { return <Routes><Route path="/" element={<HomePage />} /><Route path="*" element={<HomePage />} /></Routes>; }

@@ -1,0 +1,26 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+**/node_modules/
+**/vendor/
+
+# Build and cache
+**/dist/
+**/build/
+**/.vite/
+**/coverage/
+/backend/bootstrap/cache/*
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/storage/logs/*
+
+# Local files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
