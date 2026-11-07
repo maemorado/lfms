@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\Authorization\SupabaseAuthorizationService;
+use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\RequireRole;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -102,4 +105,39 @@ class LfmsAuthorizationTest extends TestCase
         $service = app(SupabaseAuthorizationService::class);
         $this->assertNull($service->resolve('verified-token', 'not-a-uuid'));
     }
+
+    public function test_permission_middleware_denies_missing_permissions(): void
+    {
+        $request = Request::create('/api/test');
+        $request->attributes->set('lfms_authorization', [
+            'roles' => ['staff_sa'],
+            'permissions' => ['facilities.view'],
+        ]);
+
+        $response = (new RequirePermission())->handle(
+            $request,
+            fn () => response()->json(['success' => true]),
+            'facilities.manage',
+        );
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
+    public function test_role_middleware_denies_staff_from_admin_only_route(): void
+    {
+        $request = Request::create('/api/test');
+        $request->attributes->set('lfms_authorization', [
+            'roles' => ['staff_sa'],
+            'permissions' => ['facilities.view'],
+        ]);
+
+        $response = (new RequireRole())->handle(
+            $request,
+            fn () => response()->json(['success' => true]),
+            'admin',
+        );
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
 }
