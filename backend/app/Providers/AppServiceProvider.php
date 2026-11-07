@@ -13,9 +13,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('permission', static function (GenericUser $user, string $permission): bool {
-            $permissions = $user->getAuthPassword(); // Not used for authorization; permissions are read below.
-            unset($permissions);
-
             $granted = $user->getAttribute('permissions');
             return is_array($granted) && in_array($permission, $granted, true);
         });
