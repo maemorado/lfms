@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Search, UserPlus, RefreshCw, Pencil, Eye, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Search, UserPlus, RefreshCw, Pencil, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createUser, getApiError, getAssignableRoles, listUsers, updateUser, updateUserStatus, type LfmsRole, type LfmsUser, type Pagination } from "@/services/user-management";
 
