@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FacilityManagementController;
+use App\Http\Controllers\Api\ReservationManagementController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
 use App\Support\Api\ApiResponse;
@@ -18,13 +20,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::middleware(LoadLfmsAuthorizationContext::class)->group(function (): void {
             Route::get('/auth/access', [AuthController::class, 'access'])->name('auth.access');
 
-            // Every endpoint below derives identity from the verified bearer token.
-            // Account management: Admin only, enforced by server-side permissions.
             Route::prefix('users')->name('users.')->middleware('permission:accounts.view')->group(function (): void {
                 Route::get('/roles', [UserManagementController::class, 'roles'])->name('roles');
                 Route::get('/', [UserManagementController::class, 'index'])->name('index');
                 Route::get('/{userId}', [UserManagementController::class, 'show'])->whereUuid('userId')->name('show');
-
                 Route::middleware('permission:accounts.manage')->group(function (): void {
                     Route::post('/', [UserManagementController::class, 'store'])->name('store');
                     Route::patch('/{userId}', [UserManagementController::class, 'update'])->whereUuid('userId')->name('update');
@@ -32,14 +31,30 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 });
             });
 
-            // Staff/SA and Admin may read/update only their own profile.
-            Route::get('/profile', [UserManagementController::class, 'profile'])
-                ->middleware('permission:profile.view_own')->name('profile.show');
-            Route::patch('/profile', [UserManagementController::class, 'updateProfile'])
-                ->middleware('permission:profile.update_own')->name('profile.update');
+            Route::get('/profile', [UserManagementController::class, 'profile'])->middleware('permission:profile.view_own')->name('profile.show');
+            Route::patch('/profile', [UserManagementController::class, 'updateProfile'])->middleware('permission:profile.update_own')->name('profile.update');
 
-            // Password changes use the signed-in user's Supabase session in the browser.
-            // Never accept a target user ID or password through an admin API.
+            Route::prefix('facilities')->name('facilities.')->middleware('permission:facilities.view')->group(function (): void {
+                Route::get('/lookups', [FacilityManagementController::class, 'lookups'])->name('lookups');
+                Route::get('/', [FacilityManagementController::class, 'index'])->name('index');
+                Route::get('/{facilityId}', [FacilityManagementController::class, 'show'])->whereUuid('facilityId')->name('show');
+                Route::middleware('permission:facilities.manage')->group(function (): void {
+                    Route::post('/', [FacilityManagementController::class, 'store'])->name('store');
+                    Route::patch('/{facilityId}', [FacilityManagementController::class, 'update'])->whereUuid('facilityId')->name('update');
+                });
+            });
+
+            Route::prefix('reservations')->name('reservations.')->middleware('permission:reservations.view')->group(function (): void {
+                Route::get('/', [ReservationManagementController::class, 'index'])->name('index');
+                Route::get('/{reservationId}', [ReservationManagementController::class, 'show'])->whereUuid('reservationId')->name('show');
+                Route::middleware('permission:reservations.create')->group(function (): void {
+                    Route::post('/', [ReservationManagementController::class, 'store'])->name('store');
+                    Route::patch('/{reservationId}', [ReservationManagementController::class, 'update'])->whereUuid('reservationId')->name('update');
+                    Route::patch('/{reservationId}/cancel', [ReservationManagementController::class, 'cancel'])->whereUuid('reservationId')->name('cancel');
+                });
+                Route::patch('/{reservationId}/decision', [ReservationManagementController::class, 'decide'])
+                    ->whereUuid('reservationId')->middleware('permission:reservations.manage')->name('decision');
+            });
         });
     });
 });

@@ -59,6 +59,19 @@ return Application::configure(basePath: dirname(__DIR__))
                 : null;
         });
 
+        $exceptions->render(function (FacilityReservationException $exception, Request $request) use ($isApi) {
+            if (!$isApi($request)) return null;
+            $status = $exception->httpStatus;
+            $code = match ($status) {
+                403 => 'forbidden',
+                404 => 'not_found',
+                409 => 'reservation_conflict',
+                422 => 'validation_error',
+                default => 'facility_reservation_error',
+            };
+            return ApiResponse::error($exception->getMessage(), $status, $code);
+        });
+
         $exceptions->render(function (UserManagementException $exception, Request $request) use ($isApi) {
             if (!$isApi($request)) {
                 return null;

@@ -13,7 +13,7 @@ final class UpdateReservationRequest extends FormRequest
         return [
             'facility_id' => ['sometimes', 'required', 'uuid', 'exists:facilities,id'],
             'start_at' => ['sometimes', 'required', 'date'],
-            'end_at' => ['sometimes', 'required', 'date', 'after:start_at'],
+            'end_at' => ['sometimes', 'required', 'date'],
             'purpose' => ['sometimes', 'required', 'string', 'min:3', 'max:2000'],
             'subject_course' => ['sometimes', 'nullable', 'string', 'max:160'],
             'participant_count' => ['sometimes', 'required', 'integer', 'min:1', 'max:10000'],
