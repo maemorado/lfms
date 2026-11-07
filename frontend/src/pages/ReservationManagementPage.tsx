@@ -28,6 +28,7 @@ export default function ReservationManagementPage() {
   const [toDate,setToDate] = useState("");
   const [form,setForm] = useState(emptyForm);
   const [editing,setEditing] = useState<Reservation | null>(null);
+  const [showForm,setShowForm] = useState(false);
   const [selected,setSelected] = useState<Reservation | null>(null);
   const [availabilityMessage,setAvailabilityMessage] = useState<string | null>(null);
   const [loading,setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function ReservationManagementPage() {
   useEffect(()=>{void load();},[load]);
 
   const startEdit = (item: Reservation) => {
-    setEditing(item); setSelected(null);
+    setEditing(item); setSelected(null); setShowForm(true);
     setForm({facility_id:item.facility_id,start_at:toLocalInput(item.start_at),end_at:toLocalInput(item.end_at),purpose:item.purpose,subject_course:item.subject_course ?? "",participant_count:item.participant_count});
   };
   const submit = async (event: FormEvent) => {
@@ -57,7 +58,7 @@ export default function ReservationManagementPage() {
     try {
       const payload: ReservationInput = {facility_id:form.facility_id,start_at:new Date(form.start_at).toISOString(),end_at:new Date(form.end_at).toISOString(),purpose:form.purpose.trim(),subject_course:form.subject_course.trim() || null,participant_count:form.participant_count};
       if(editing) await updateReservation(editing.id,payload); else await createReservation(payload);
-      setEditing(null); setForm(emptyForm); setNotice(editing ? "Pending reservation updated." : "Reservation request submitted. It is awaiting Admin review.");
+      setEditing(null); setShowForm(false); setForm(emptyForm); setNotice(editing ? "Pending reservation updated." : "Reservation request submitted. It is awaiting Admin review.");
       await load();
     } catch(cause) { setError(getApiError(cause)); }
     finally { setSaving(false); }
@@ -93,12 +94,12 @@ export default function ReservationManagementPage() {
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4"><Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft size={17}/> Dashboard</Link><span className="text-sm font-semibold tracking-widest text-slate-800">LFMS / RESERVATIONS</span></div></header>
     <section className="mx-auto max-w-7xl px-5 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-teal-700">{canManage ? "Administration" : "Staff workspace"}</p><h1 className="mt-1 text-3xl font-semibold text-slate-950">{canManage ? "Reservation management" : "My reservations"}</h1><p className="mt-2 text-sm text-slate-600">{canManage ? "Review requests, manage approvals, and monitor facility schedules." : "Request a facility and track the status of your bookings."}</p></div>
-        {canCreate && <button onClick={()=>{setEditing(null);setForm({...emptyForm,facility_id:facilities[0]?.id ?? ""});setSelected(null);setError(null);}} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"><Plus size={17}/> New request</button>}
+        {canCreate && <button onClick={()=>{setEditing(null);setShowForm(true);setForm({...emptyForm,facility_id:facilities[0]?.id ?? ""});setSelected(null);setError(null);}} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"><Plus size={17}/> New request</button>}
       </div>
       {error && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {notice && <p role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
-      {canCreate && <form onSubmit={submit} className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between"><h2 className="font-semibold text-slate-900">{editing ? "Edit pending request" : "Request a reservation"}</h2><button type="button" onClick={()=>{setEditing(null);setForm(emptyForm);}} className="text-sm text-slate-500">Close form</button></div>
+      {canCreate && (showForm || editing !== null) && <form onSubmit={submit} className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between"><h2 className="font-semibold text-slate-900">{editing ? "Edit pending request" : "Request a reservation"}</h2><button type="button" onClick={()=>{setEditing(null);setShowForm(false);setForm(emptyForm);}} className="text-sm text-slate-500">Close form</button></div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label className="text-sm text-slate-600">Facility<select required value={form.facility_id} onChange={e=>setForm({...form,facility_id:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"><option value="">Select available facility</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name} · capacity {f.capacity}</option>)}</select></label>
           <label className="text-sm text-slate-600">Start date and time<input required type="datetime-local" value={form.start_at} onChange={e=>setForm({...form,start_at:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"/></label>

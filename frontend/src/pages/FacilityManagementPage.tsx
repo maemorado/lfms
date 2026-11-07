@@ -18,6 +18,7 @@ export default function FacilityManagementPage() {
   const [status,setStatus] = useState("");
   const [form,setForm] = useState(emptyForm);
   const [editing,setEditing] = useState<Facility | null>(null);
+  const [showForm,setShowForm] = useState(false);
   const [selected,setSelected] = useState<Facility | null>(null);
   const [loading,setLoading] = useState(true);
   const [saving,setSaving] = useState(false);
@@ -38,7 +39,7 @@ export default function FacilityManagementPage() {
   useEffect(()=>{void load();},[load]);
 
   const startEdit = (item: Facility) => {
-    setEditing(item); setSelected(null);
+    setEditing(item); setSelected(null); setShowForm(true);
     setForm({building_id:item.building_id,facility_type_id:item.facility_type_id,name:item.name,code:item.code,capacity:item.capacity,description:item.description ?? "",status:item.status});
   };
   const submit = async (event: FormEvent) => {
@@ -46,7 +47,7 @@ export default function FacilityManagementPage() {
     try {
       const payload = {...form,name:form.name.trim(),code:form.code.trim(),description:form.description.trim() || null};
       if(editing) await updateFacility(editing.id,payload); else await createFacility(payload);
-      setEditing(null); setForm(emptyForm); setNotice(editing ? "Facility updated." : "Facility created.");
+      setEditing(null); setShowForm(false); setForm(emptyForm); setNotice(editing ? "Facility updated." : "Facility created.");
       await load();
     } catch(cause) { setError(getApiError(cause)); }
     finally { setSaving(false); }
@@ -56,12 +57,12 @@ export default function FacilityManagementPage() {
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4"><Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft size={17}/> Dashboard</Link><span className="text-sm font-semibold tracking-widest text-slate-800">LFMS / FACILITIES</span></div></header>
     <section className="mx-auto max-w-7xl px-5 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-teal-700">Facilities and laboratories</p><h1 className="mt-1 text-3xl font-semibold text-slate-950">Facility directory</h1><p className="mt-2 text-sm text-slate-600">Browse laboratory spaces, capacity, location, and operational status.</p></div>
-        {canManage && <button onClick={()=>{setEditing(null);setForm(emptyForm);setError(null);}} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"><Plus size={17}/> New facility</button>}
+        {canManage && <button onClick={()=>{setEditing(null);setShowForm(true);setForm(emptyForm);setError(null);}} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"><Plus size={17}/> New facility</button>}
       </div>
       {error && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {notice && <p role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
-      {canManage && <form onSubmit={submit} className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between"><h2 className="font-semibold text-slate-900">{editing ? "Edit facility" : "Create facility"}</h2><button type="button" onClick={()=>{setEditing(null);setForm(emptyForm);}} className="text-sm text-slate-500">Close form</button></div>
+      {canManage && (showForm || editing !== null) && <form onSubmit={submit} className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between"><h2 className="font-semibold text-slate-900">{editing ? "Edit facility" : "Create facility"}</h2><button type="button" onClick={()=>{setEditing(null);setShowForm(false);setForm(emptyForm);}} className="text-sm text-slate-500">Close form</button></div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm text-slate-600">Facility name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"/></label>
           <label className="text-sm text-slate-600">Code<input required value={form.code} onChange={e=>setForm({...form,code:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"/></label>
