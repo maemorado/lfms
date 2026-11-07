@@ -44,7 +44,7 @@ class AuthenticateSupabaseUser
         }
 
         if (!$authResponse->successful()) {
-            if ($authResponse->clientError()) {
+            if (in_array($authResponse->status(), [400, 401, 403], true)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'The provided access token is invalid or expired.',
