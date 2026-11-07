@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { KeyRound, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
