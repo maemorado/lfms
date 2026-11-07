@@ -18,6 +18,7 @@
         <env name="DB_DATABASE" value="lfms_test"/>
         <env name="DB_USERNAME" value="postgres"/>
         <env name="DB_PASSWORD" value="password"/>
+        <env name="DB_SSLMODE" value="disable"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
