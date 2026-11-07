@@ -7,6 +7,8 @@ use App\Services\Facilities\FacilityManagementService;
 use App\Services\Reservations\ReservationManagementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Mockery;
 use Tests\TestCase;
 
@@ -114,4 +116,67 @@ final class FacilityReservationApiTest extends TestCase
         $this->withToken('staff-token')->getJson('/api/v1/reservations/'.self::RESOURCE_ID)
             ->assertNotFound()->assertJsonPath('code', 'not_found');
     }
+
+    public function test_staff_can_submit_a_reservation_and_requester_is_not_client_controlled(): void
+    {
+        Schema::dropIfExists('facilities');
+        Schema::create('facilities', function (Blueprint $table): void { $table->uuid('id')->primary(); });
+        $this->authenticate(self::STAFF_ID, 'staff_sa', ['reservations.view','reservations.create']);
+        $start = now()->addDays(2)->startOfHour();
+        $end = $start->copy()->addHour();
+        $service = Mockery::mock(ReservationManagementService::class);
+        $service->shouldReceive('create')->once()->with(self::STAFF_ID, Mockery::on(
+            fn (array $data) => $data['facility_id'] === self::RESOURCE_ID && $data['purpose'] === 'Lab session'
+        ))->andReturn([
+            'id' => self::RESOURCE_ID, 'facility_id' => self::RESOURCE_ID, 'requester_id' => self::STAFF_ID,
+            'start_at' => $start->toIso8601String(), 'end_at' => $end->toIso8601String(),
+            'purpose' => 'Lab session', 'subject_course' => null, 'participant_count' => 8,
+            'status' => 'pending', 'cancellation_reason' => null, 'facility' => [], 'requester' => [], 'approvals' => [],
+        ]);
+        $this->app->instance(ReservationManagementService::class, $service);
+
+        $this->withToken('staff-token')->postJson('/api/v1/reservations', [
+            'facility_id' => self::RESOURCE_ID, 'start_at' => $start->toIso8601String(),
+            'end_at' => $end->toIso8601String(), 'purpose' => 'Lab session',
+            'participant_count' => 8, 'requester_id' => self::ADMIN_ID,
+        ])->assertCreated()->assertJsonPath('data.reservation.requester_id', self::STAFF_ID);
+    }
+
+    public function test_invalid_reservation_period_is_rejected_by_request_validation(): void
+    {
+        Schema::dropIfExists('facilities');
+        Schema::create('facilities', function (Blueprint $table): void { $table->uuid('id')->primary(); });
+        $this->authenticate(self::STAFF_ID, 'staff_sa', ['reservations.view','reservations.create']);
+        $service = Mockery::mock(ReservationManagementService::class);
+        $service->shouldNotReceive('create');
+        $this->app->instance(ReservationManagementService::class, $service);
+        $start = now()->addDays(2);
+        $end = $start->copy()->subHour();
+
+        $this->withToken('staff-token')->postJson('/api/v1/reservations', [
+            'facility_id' => self::RESOURCE_ID, 'start_at' => $start->toIso8601String(),
+            'end_at' => $end->toIso8601String(), 'purpose' => 'Lab session',
+        ])->assertUnprocessable()->assertJsonPath('code', 'validation_error');
+    }
+
+    public function test_staff_can_cancel_an_own_reservation(): void
+    {
+        $this->authenticate(self::STAFF_ID, 'staff_sa', ['reservations.view','reservations.create']);
+        $service = Mockery::mock(ReservationManagementService::class);
+        $service->shouldReceive('cancel')->once()
+            ->with(self::STAFF_ID, self::RESOURCE_ID, 'Schedule changed', false)
+            ->andReturn([
+                'id' => self::RESOURCE_ID, 'facility_id' => self::RESOURCE_ID, 'requester_id' => self::STAFF_ID,
+                'start_at' => '2027-01-01T10:00:00Z', 'end_at' => '2027-01-01T11:00:00Z',
+                'purpose' => 'Lab session', 'subject_course' => null, 'participant_count' => 8,
+                'status' => 'cancelled', 'cancellation_reason' => 'Schedule changed',
+                'facility' => [], 'requester' => [], 'approvals' => [],
+            ]);
+        $this->app->instance(ReservationManagementService::class, $service);
+
+        $this->withToken('staff-token')->patchJson('/api/v1/reservations/'.self::RESOURCE_ID.'/cancel', [
+            'cancellation_reason' => 'Schedule changed',
+        ])->assertOk()->assertJsonPath('data.reservation.status', 'cancelled');
+    }
+
 }

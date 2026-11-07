@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, CalendarDays, Check, Plus, RefreshCw, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { cancelReservation, checkFacilityAvailability, createReservation, decideReservation, getApiError, getFacilityLookups, getReservation, listFacilities, listReservations, updateReservation, type Facility, type Pagination, type Reservation, type ReservationInput } from "@/services/facility-reservation";
+import { cancelReservation, checkFacilityAvailability, createReservation, decideReservation, getApiError, getReservation, listFacilities, listReservations, updateReservation, type Facility, type Pagination, type Reservation, type ReservationInput } from "@/services/facility-reservation";
 
 const emptyForm = { facility_id: "", start_at: "", end_at: "", purpose: "", subject_course: "", participant_count: 1 };
 const statuses = ["pending","approved","rejected","cancelled","completed"] as const;

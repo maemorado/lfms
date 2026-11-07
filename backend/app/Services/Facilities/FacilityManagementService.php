@@ -89,7 +89,7 @@ final class FacilityManagementService
             if (!$facility) throw new FacilityReservationException('Facility not found.', 404);
             $buildingId = $data['building_id'] ?? $facility->building_id;
             $typeId = $data['facility_type_id'] ?? $facility->facility_type_id;
-            $this->assertReferences($buildingId, $typeId);
+            $this->assertReferences($buildingId, $typeId, $typeId !== $facility->facility_type_id);
 
             $nextStatus = $data['status'] ?? $facility->status;
             $hasFutureApproved = DB::table('reservations')->where('facility_id', $id)
@@ -140,10 +140,12 @@ final class FacilityManagementService
         return $result;
     }
 
-    private function assertReferences(string $buildingId, string $typeId): void
+    private function assertReferences(string $buildingId, string $typeId, bool $requireActiveType = true): void
     {
         if (!DB::table('buildings')->where('id', $buildingId)->exists()) throw new FacilityReservationException('Selected building does not exist.', 422);
-        if (!DB::table('facility_types')->where('id', $typeId)->where('is_active', true)->exists()) throw new FacilityReservationException('Selected facility type is inactive or does not exist.', 422);
+        $typeQuery = DB::table('facility_types')->where('id', $typeId);
+        if ($requireActiveType) $typeQuery->where('is_active', true);
+        if (!$typeQuery->exists()) throw new FacilityReservationException('Selected facility type is inactive or does not exist.', 422);
     }
 
     private function setActor(string $actorId): void
