@@ -7,7 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use RuntimeException;
+use App\\Exceptions\\UserManagementException;
 use Throwable;
 
 final class UserManagementService
@@ -64,7 +64,7 @@ final class UserManagementService
     {
         $user = $this->userQuery()->where('profiles.id', $userId)->first();
         if (!$user) {
-            throw new RuntimeException('The requested account was not found.', 404);
+            throw new UserManagementException('The requested account was not found.', 404);
         }
         return $this->normalize($user);
     }
@@ -72,7 +72,7 @@ final class UserManagementService
     public function create(string $actorId, array $data): array
     {
         if (DB::table('profiles')->whereRaw('lower(email) = lower(?)', [$data['email']])->exists()) {
-            throw new RuntimeException('An LFMS profile already uses this email address.', 422);
+            throw new UserManagementException('An LFMS profile already uses this email address.', 422);
         }
         $role = $this->findAssignableRole($data['role']);
         $userId = $this->auth->invite($data['email'], $data['full_name']);
@@ -103,13 +103,13 @@ final class UserManagementService
     public function update(string $actorId, string $userId, array $data): array
     {
         if ($actorId === $userId && array_key_exists('role', $data)) {
-            throw new RuntimeException('You cannot change your own role.', 403);
+            throw new UserManagementException('You cannot change your own role.', 403);
         }
 
         DB::transaction(function () use ($actorId, $userId, $data): void {
             $this->setActor($actorId);
             $profile = DB::table('profiles')->where('id', $userId)->lockForUpdate()->first();
-            if (!$profile) throw new RuntimeException('The requested account was not found.', 404);
+            if (!$profile) throw new UserManagementException('The requested account was not found.', 404);
 
             $updates = [];
             foreach (['full_name', 'employee_id'] as $field) {
@@ -125,7 +125,7 @@ final class UserManagementService
                 $currentIsAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
                     ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
                 if ($currentIsAdmin && $role->name !== 'admin' && !$this->hasOtherActiveAdmin($userId)) {
-                    throw new RuntimeException('This change would remove the last active Admin account.', 422);
+                    throw new UserManagementException('This change would remove the last active Admin account.', 422);
                 }
                 $this->replaceRole($actorId, $userId, $role->id, $role->name);
             }
@@ -143,20 +143,20 @@ final class UserManagementService
     public function setStatus(string $actorId, string $userId, string $status): array
     {
         if ($actorId === $userId) {
-            throw new RuntimeException('You cannot deactivate or reactivate your own account from account management.', 403);
+            throw new UserManagementException('You cannot deactivate or reactivate your own account from account management.', 403);
         }
         if (!in_array($status, ['active', 'inactive'], true)) {
-            throw new RuntimeException('Unsupported account status.', 422);
+            throw new UserManagementException('Unsupported account status.', 422);
         }
 
         $profile = DB::table('profiles')->where('id', $userId)->first();
-        if (!$profile) throw new RuntimeException('The requested account was not found.', 404);
+        if (!$profile) throw new UserManagementException('The requested account was not found.', 404);
         if ($profile->status === $status) return $this->find($userId);
 
         $isAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
         if ($status !== 'active' && $isAdmin && !$this->hasOtherActiveAdmin($userId)) {
-            throw new RuntimeException('This change would deactivate the last active Admin account.', 422);
+            throw new UserManagementException('This change would deactivate the last active Admin account.', 422);
         }
 
         // Update Supabase Auth first. If the database update fails, restore the previous Auth state.
@@ -181,7 +181,7 @@ final class UserManagementService
             'id', 'full_name', 'email', 'employee_id', 'status', 'created_at', 'updated_at',
         ]);
         if (!$profile || $profile->status !== 'active') {
-            throw new RuntimeException('Your active LFMS profile could not be found.', 404);
+            throw new UserManagementException('Your active LFMS profile could not be found.', 404);
         }
         return (array) $profile;
     }
@@ -227,11 +227,11 @@ final class UserManagementService
     private function findAssignableRole(string $name): object
     {
         if (!in_array($name, ['admin', 'staff_sa'], true)) {
-            throw new RuntimeException('Only the existing Admin and Staff/SA roles can be assigned.', 422);
+            throw new UserManagementException('Only the existing Admin and Staff/SA roles can be assigned.', 422);
         }
         $role = DB::table('roles')->join('role_permissions', 'role_permissions.role_id', '=', 'roles.id')
             ->where('roles.name', $name)->select('roles.id', 'roles.name')->first();
-        if (!$role) throw new RuntimeException('The selected role is not configured for LFMS.', 422);
+        if (!$role) throw new UserManagementException('The selected role is not configured for LFMS.', 422);
         return $role;
     }
 
