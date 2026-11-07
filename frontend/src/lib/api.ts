@@ -5,8 +5,11 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _authRetry?: boolean;
 };
 
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const apiBaseUrl = configuredApiBaseUrl || (import.meta.env.DEV ? "http://localhost:8000/api" : undefined);
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: apiBaseUrl,
   headers: { Accept: "application/json", "Content-Type": "application/json" },
   timeout: 15000,
 });
