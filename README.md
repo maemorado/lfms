@@ -42,7 +42,7 @@ Laravel serves the API at http://localhost:8000. Configure the local PostgreSQL 
 
 The connected project is **LFMS**, project ref `bwebicixgcnzyqoaccha`, region `ap-southeast-1`, URL `https://bwebicixgcnzyqoaccha.supabase.co`.
 
-Inspected direct PostgreSQL endpoint: `db.bwebicixgcnzyqoaccha.supabase.co:5432`; database/user: `postgres`; SSL mode: `require`. The database password is not available through the integration and must be entered locally from the Supabase dashboard. If direct connectivity is unavailable on your network, use the pooler details shown in the Supabase dashboard and update your local environment.
+The direct PostgreSQL endpoint `db.bwebicixgcnzyqoaccha.supabase.co:5432` is IPv6-only. On IPv4-only networks use the shared pooler in session mode: `aws-0-ap-southeast-1.pooler.supabase.com:5432`, username `postgres.bwebicixgcnzyqoaccha`, database `postgres`, SSL mode `require`. The database password is not available through the integration and must be entered locally from the Supabase dashboard.
 
 The frontend publishable key is browser-safe. Any secret key and database password must remain in backend-only environment variables. Never put secrets in Vite-prefixed variables or commit actual `.env` files.
 
