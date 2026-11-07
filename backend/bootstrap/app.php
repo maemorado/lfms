@@ -59,6 +59,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 : null;
         });
 
+        $exceptions->render(function (UserManagementException $exception, Request $request) use ($isApi) {
+            if (!$isApi($request)) {
+                return null;
+            }
+
+            $status = $exception->httpStatus;
+            $code = match ($status) {
+                403 => 'forbidden',
+                404 => 'not_found',
+                422 => 'validation_error',
+                default => 'user_management_error',
+            };
+
+            return ApiResponse::error($exception->getMessage(), $status, $code);
+        });
+
         $exceptions->render(function (QueryException $exception, Request $request) use ($isApi) {
             return $isApi($request)
                 ? ApiResponse::error('A database operation could not be completed.', 500, 'database_error')
