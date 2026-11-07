@@ -13,12 +13,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('permission', static function (GenericUser $user, string $permission): bool {
-            $granted = $user->getAttribute('permissions');
+            $granted = $user->permissions;
             return is_array($granted) && in_array($permission, $granted, true);
         });
 
         Gate::define('role', static function (GenericUser $user, string $role): bool {
-            $roles = $user->getAttribute('roles');
+            $roles = $user->roles;
             return is_array($roles) && in_array($role, $roles, true);
         });
     }
