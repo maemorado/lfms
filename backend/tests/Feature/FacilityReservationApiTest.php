@@ -7,6 +7,7 @@ use App\Services\Facilities\FacilityManagementService;
 use App\Services\Reservations\ReservationManagementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Mockery;
@@ -121,6 +122,7 @@ final class FacilityReservationApiTest extends TestCase
     {
         Schema::dropIfExists('facilities');
         Schema::create('facilities', function (Blueprint $table): void { $table->uuid('id')->primary(); });
+        DB::table('facilities')->insert(['id' => self::RESOURCE_ID]);
         $this->authenticate(self::STAFF_ID, 'staff_sa', ['reservations.view','reservations.create']);
         $start = now()->addDays(2)->startOfHour();
         $end = $start->copy()->addHour();
@@ -146,6 +148,7 @@ final class FacilityReservationApiTest extends TestCase
     {
         Schema::dropIfExists('facilities');
         Schema::create('facilities', function (Blueprint $table): void { $table->uuid('id')->primary(); });
+        DB::table('facilities')->insert(['id' => self::RESOURCE_ID]);
         $this->authenticate(self::STAFF_ID, 'staff_sa', ['reservations.view','reservations.create']);
         $service = Mockery::mock(ReservationManagementService::class);
         $service->shouldNotReceive('create');
