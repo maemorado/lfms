@@ -2,9 +2,9 @@
 
 namespace App\Services\Auth;
 
+use App\Exceptions\UserManagementException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 final class SupabaseAdminAuthService
 {
