@@ -10,7 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-final class ReservationManagementService
+class ReservationManagementService
 {
     public function list(array $filters, string $actorId, bool $isAdmin): LengthAwarePaginator
     {

@@ -8,7 +8,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-final class FacilityManagementService
+class FacilityManagementService
 {
     public function list(array $filters): LengthAwarePaginator
     {
