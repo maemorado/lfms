@@ -81,11 +81,14 @@ class ApiArchitectureTest extends TestCase
         );
 
         $response = ApiResponse::paginated($paginator);
-        $response->assertJsonPath('success', true);
-        $response->assertJsonPath('meta.pagination.current_page', 2);
-        $response->assertJsonPath('meta.pagination.per_page', 2);
-        $response->assertJsonPath('meta.pagination.total', 7);
-        $response->assertJsonPath('meta.pagination.last_page', 4);
+        $payload = json_decode($response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertTrue($payload['success']);
+        $this->assertSame(2, $payload['meta']['pagination']['current_page']);
+        $this->assertSame(2, $payload['meta']['pagination']['per_page']);
+        $this->assertSame(7, $payload['meta']['pagination']['total']);
+        $this->assertSame(4, $payload['meta']['pagination']['last_page']);
     }
 
     public function test_database_transaction_rolls_back_partial_writes_on_failure(): void
