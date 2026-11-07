@@ -50,7 +50,7 @@ Staff/SA listing and detail reads are scoped to the authenticated requester. Adm
 
 ## Audit and authorization
 
-Facility/reservation mutations set the existing transaction-local `app.current_user_id` used by the database audit trigger and add records to `activity_logs`. Laravel permission middleware enforces role permissions. Reservation ownership is derived from the verified Supabase user ID, never a request-supplied requester ID.
+Facility/reservation mutations set the existing transaction-local `app.current_user_id` used by the database audit trigger and add records to `activity_logs`. Laravel permission middleware and registered FacilityPolicy/ReservationPolicy classes enforce role permissions, ownership, pending-only edits/reviews, and eligible cancellations. Reservation ownership is derived from the verified Supabase user ID, never a request-supplied requester ID.
 
 The Laravel PostgreSQL connection is not automatically assigned Supabase `auth.uid()`; the database RLS policies remain unchanged, but Laravel must continue to enforce the verified identity and permission/ownership checks before its privileged database operations.
 

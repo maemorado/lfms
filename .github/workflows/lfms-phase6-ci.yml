@@ -49,3 +49,34 @@ jobs:
         run: npm run lint --prefix frontend
       - name: Build frontend
         run: npm run build --prefix frontend
+
+  postgres-reservation-constraint:
+    name: PostgreSQL scheduling constraint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lfms_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lfms_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_pgsql, pgsql, xml, curl
+          coverage: none
+      - name: Install backend dependencies
+        run: composer install --no-interaction --prefer-dist --working-dir=backend
+      - name: Verify PostgreSQL reservation exclusion constraint
+        working-directory: backend
+        run: vendor/bin/phpunit -c phpunit.pgsql.xml
