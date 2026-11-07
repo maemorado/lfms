@@ -74,6 +74,9 @@ final class UserManagementService
         if (DB::table('profiles')->whereRaw('lower(email) = lower(?)', [$data['email']])->exists()) {
             throw new UserManagementException('An LFMS profile already uses this email address.', 422);
         }
+        if (!empty($data['employee_id']) && DB::table('profiles')->where('employee_id', $data['employee_id'])->exists()) {
+            throw new UserManagementException('That employee ID is already assigned to another account.', 422);
+        }
         $role = $this->findAssignableRole($data['role']);
         $userId = $this->auth->invite($data['email'], $data['full_name']);
 
@@ -114,6 +117,9 @@ final class UserManagementService
             $updates = [];
             foreach (['full_name', 'employee_id'] as $field) {
                 if (array_key_exists($field, $data)) $updates[$field] = $data[$field];
+            }
+            if (!empty($updates['employee_id']) && DB::table('profiles')->where('employee_id', $updates['employee_id'])->where('id', '<>', $userId)->exists()) {
+                throw new UserManagementException('That employee ID is already assigned to another account.', 422);
             }
             if ($updates !== []) {
                 $updates['updated_at'] = now();
@@ -156,14 +162,16 @@ final class UserManagementService
         if ($initialProfile->status === $status) return $this->find($userId);
 
         $authStatusChanged = false;
+        $previousStatus = $initialProfile->status;
         try {
-            DB::transaction(function () use ($actorId, $userId, $status, &$authStatusChanged): void {
+            DB::transaction(function () use ($actorId, $userId, $status, &$authStatusChanged, &$previousStatus): void {
                 $this->setActor($actorId);
                 // Serialize status changes against role changes using the canonical Admin role row.
                 DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
                 $profile = DB::table('profiles')->where('id', $userId)->lockForUpdate()->first();
                 if (!$profile) throw new UserManagementException('The requested account was not found.', 404);
                 if ($profile->status === $status) return;
+                $previousStatus = $profile->status;
 
                 $isAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
                     ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
@@ -180,7 +188,7 @@ final class UserManagementService
             });
         } catch (Throwable $exception) {
             if ($authStatusChanged) {
-                try { $this->auth->setBanned($userId, $initialProfile->status !== 'active'); } catch (Throwable) { /* preserve original error */ }
+                try { $this->auth->setBanned($userId, $previousStatus !== 'active'); } catch (Throwable) { /* preserve original error */ }
             }
             throw $exception;
         }
