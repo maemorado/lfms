@@ -78,19 +78,12 @@ final class PostgresReservationConstraintTest extends TestCase
     public function test_database_rejects_overlapping_approved_reservations_for_same_facility(): void
     {
         $facilityId = (string)Str::uuid();
+        $requesterId = $this->seedRequester();
         DB::table('facilities')->insert(['id' => $facilityId, 'name' => 'Test Lab', 'code' => 'TEST-LAB', 'status' => 'available', 'capacity' => 30]);
-        DB::table('reservations')->insert([
-            'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
-            'start_at' => '2030-04-01 09:00:00+00', 'end_at' => '2030-04-01 10:00:00+00',
-            'status' => 'approved',
-        ]);
+        $this->insertReservation((string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 09:00:00+00', '2030-04-01 10:00:00+00', 'approved');
 
         try {
-            DB::table('reservations')->insert([
-                'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
-                'start_at' => '2030-04-01 09:30:00+00', 'end_at' => '2030-04-01 10:30:00+00',
-                'status' => 'approved',
-            ]);
+            $this->insertReservation((string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 09:30:00+00', '2030-04-01 10:30:00+00', 'approved');
             self::fail('PostgreSQL should reject overlapping approved reservations.');
         } catch (QueryException $exception) {
             self::assertSame('23P01', $exception->errorInfo[0] ?? null);
@@ -101,31 +94,16 @@ final class PostgresReservationConstraintTest extends TestCase
     {
         $facilityId = (string)Str::uuid();
         $otherFacilityId = (string)Str::uuid();
+        $requesterId = $this->seedRequester();
         DB::table('facilities')->insert([
             ['id' => $facilityId, 'name' => 'Test Lab A', 'code' => 'TEST-A', 'status' => 'available', 'capacity' => 30],
             ['id' => $otherFacilityId, 'name' => 'Test Lab B', 'code' => 'TEST-B', 'status' => 'available', 'capacity' => 30],
         ]);
 
-        DB::table('reservations')->insert([
-            'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
-            'start_at' => '2030-04-01 09:00:00+00', 'end_at' => '2030-04-01 10:00:00+00',
-            'status' => 'approved',
-        ]);
-        DB::table('reservations')->insert([
-            'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
-            'start_at' => '2030-04-01 10:00:00+00', 'end_at' => '2030-04-01 11:00:00+00',
-            'status' => 'approved',
-        ]);
-        DB::table('reservations')->insert([
-            'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
-            'start_at' => '2030-04-01 09:30:00+00', 'end_at' => '2030-04-01 10:30:00+00',
-            'status' => 'pending',
-        ]);
-        DB::table('reservations')->insert([
-            'id' => (string)Str::uuid(), 'facility_id' => $otherFacilityId,
-            'start_at' => '2030-04-01 09:30:00+00', 'end_at' => '2030-04-01 10:30:00+00',
-            'status' => 'approved',
-        ]);
+        $this->insertReservation((string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 09:00:00+00', '2030-04-01 10:00:00+00', 'approved');
+        $this->insertReservation((string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 10:00:00+00', '2030-04-01 11:00:00+00', 'approved');
+        $this->insertReservation((string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 09:30:00+00', '2030-04-01 10:30:00+00', 'pending');
+        $this->insertReservation((string)Str::uuid(), $otherFacilityId, $requesterId, '2030-04-01 09:30:00+00', '2030-04-01 10:30:00+00', 'approved');
 
         self::assertSame(4, DB::table('reservations')->count());
     }
@@ -178,6 +156,7 @@ final class PostgresReservationConstraintTest extends TestCase
         }
 
         $facilityId = (string)Str::uuid();
+        $requesterId = $this->seedRequester();
         DB::table('facilities')->insert(['id' => $facilityId, 'name' => 'Test Lab', 'code' => 'TEST-LAB', 'status' => 'available', 'capacity' => 30]);
         [$parentSocket, $childSocket] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
         $childPid = pcntl_fork();
@@ -188,8 +167,8 @@ final class PostgresReservationConstraintTest extends TestCase
             try {
                 $pdo = $this->newPostgresConnection();
                 $pdo->beginTransaction();
-                $statement = $pdo->prepare('INSERT INTO reservations (id, facility_id, start_at, end_at, status) VALUES (?, ?, ?, ?, ?)');
-                $statement->execute([(string)Str::uuid(), $facilityId, '2030-04-01 09:00:00+00', '2030-04-01 10:00:00+00', 'approved']);
+                $statement = $pdo->prepare('INSERT INTO reservations (id, facility_id, requester_id, start_at, end_at, purpose, participant_count, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+                $statement->execute([(string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 09:00:00+00', '2030-04-01 10:00:00+00', 'Concurrent test', 10, 'approved']);
                 fwrite($childSocket, "READY\n");
                 usleep(400000);
                 $pdo->commit();
@@ -209,8 +188,8 @@ final class PostgresReservationConstraintTest extends TestCase
         $pdo = $this->newPostgresConnection();
         $pdo->beginTransaction();
         try {
-            $statement = $pdo->prepare('INSERT INTO reservations (id, facility_id, start_at, end_at, status) VALUES (?, ?, ?, ?, ?)');
-            $statement->execute([(string)Str::uuid(), $facilityId, '2030-04-01 09:30:00+00', '2030-04-01 10:30:00+00', 'approved']);
+            $statement = $pdo->prepare('INSERT INTO reservations (id, facility_id, requester_id, start_at, end_at, purpose, participant_count, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $statement->execute([(string)Str::uuid(), $facilityId, $requesterId, '2030-04-01 09:30:00+00', '2030-04-01 10:30:00+00', 'Concurrent test', 10, 'approved']);
             self::fail('The concurrent overlapping reservation should violate the exclusion constraint.');
         } catch (PDOException $exception) {
             if ($pdo->inTransaction()) $pdo->rollBack();
@@ -222,6 +201,24 @@ final class PostgresReservationConstraintTest extends TestCase
         }
         self::assertSame('COMMITTED', $committed);
         self::assertSame(0, pcntl_wexitstatus($childStatus));
+    }
+
+
+    private function seedRequester(): string
+    {
+        $id = (string)Str::uuid();
+        DB::table('profiles')->insert(['id' => $id, 'full_name' => 'Test Requester']);
+        return $id;
+    }
+
+    private function insertReservation(string $id, string $facilityId, string $requesterId, string $start, string $end, string $status): void
+    {
+        DB::table('reservations')->insert([
+            'id' => $id, 'facility_id' => $facilityId, 'requester_id' => $requesterId,
+            'start_at' => $start, 'end_at' => $end, 'purpose' => 'Constraint test',
+            'subject_course' => null, 'participant_count' => 10, 'status' => $status,
+            'cancellation_reason' => null,
+        ]);
     }
 
     private function newPostgresConnection(): PDO
