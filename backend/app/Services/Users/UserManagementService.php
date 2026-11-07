@@ -155,8 +155,9 @@ final class UserManagementService
         if (!$initialProfile) throw new UserManagementException('The requested account was not found.', 404);
         if ($initialProfile->status === $status) return $this->find($userId);
 
+        $authStatusChanged = false;
         try {
-            DB::transaction(function () use ($actorId, $userId, $status): void {
+            DB::transaction(function () use ($actorId, $userId, $status, &$authStatusChanged): void {
                 $this->setActor($actorId);
                 // Serialize status changes against role changes using the canonical Admin role row.
                 DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
@@ -173,11 +174,14 @@ final class UserManagementService
                 // Keep the auth ban and profile status transition in one guarded workflow.
                 // If a later database operation fails, the catch below restores the prior Auth state.
                 $this->auth->setBanned($userId, $status !== 'active');
+                $authStatusChanged = true;
                 DB::table('profiles')->where('id', $userId)->update(['status' => $status, 'updated_at' => now()]);
                 $this->activity($actorId, $userId, $status === 'active' ? 'account.activated' : 'account.deactivated', []);
             });
         } catch (Throwable $exception) {
-            try { $this->auth->setBanned($userId, $initialProfile->status !== 'active'); } catch (Throwable) { /* preserve original error */ }
+            if ($authStatusChanged) {
+                try { $this->auth->setBanned($userId, $initialProfile->status !== 'active'); } catch (Throwable) { /* preserve original error */ }
+            }
             throw $exception;
         }
 
