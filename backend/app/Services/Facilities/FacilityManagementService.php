@@ -3,6 +3,7 @@
 namespace App\Services\Facilities;
 
 use App\Exceptions\FacilityReservationException;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -47,8 +48,8 @@ class FacilityManagementService
 
     public function availability(string $id, string $startAt, string $endAt): array
     {
-        $start = \\Carbon\\CarbonImmutable::parse($startAt);
-        $end = \\Carbon\\CarbonImmutable::parse($endAt);
+        $start = CarbonImmutable::parse($startAt);
+        $end = CarbonImmutable::parse($endAt);
         if ($end->lessThanOrEqualTo($start) || $start->lessThanOrEqualTo(now())) {
             throw new FacilityReservationException('Choose a future start time and an end time after it.', 422);
         }
