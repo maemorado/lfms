@@ -76,7 +76,7 @@ class AuthenticateSupabaseUserTest extends TestCase
 
         $this->withToken('valid-test-token')
             ->getJson('/api/auth/me')
-            ->assertServiceUnavailable()
+            ->assertStatus(503)
             ->assertJsonPath('success', false);
     }
 }
