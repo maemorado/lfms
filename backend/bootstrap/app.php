@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UserManagementException;
 use App\Http\Middleware\AuthenticateSupabaseUser;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
 use App\Http\Middleware\RequirePermission;
