@@ -78,7 +78,7 @@ final class PostgresReservationConstraintTest extends TestCase
     public function test_database_rejects_overlapping_approved_reservations_for_same_facility(): void
     {
         $facilityId = (string)Str::uuid();
-        DB::table('facilities')->insert(['id' => $facilityId]);
+        DB::table('facilities')->insert(['id' => $facilityId, 'name' => 'Test Lab', 'code' => 'TEST-LAB', 'status' => 'available', 'capacity' => 30]);
         DB::table('reservations')->insert([
             'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
             'start_at' => '2030-04-01 09:00:00+00', 'end_at' => '2030-04-01 10:00:00+00',
@@ -101,7 +101,10 @@ final class PostgresReservationConstraintTest extends TestCase
     {
         $facilityId = (string)Str::uuid();
         $otherFacilityId = (string)Str::uuid();
-        DB::table('facilities')->insert([['id' => $facilityId], ['id' => $otherFacilityId]]);
+        DB::table('facilities')->insert([
+            ['id' => $facilityId, 'name' => 'Test Lab A', 'code' => 'TEST-A', 'status' => 'available', 'capacity' => 30],
+            ['id' => $otherFacilityId, 'name' => 'Test Lab B', 'code' => 'TEST-B', 'status' => 'available', 'capacity' => 30],
+        ]);
 
         DB::table('reservations')->insert([
             'id' => (string)Str::uuid(), 'facility_id' => $facilityId,
@@ -175,7 +178,7 @@ final class PostgresReservationConstraintTest extends TestCase
         }
 
         $facilityId = (string)Str::uuid();
-        DB::table('facilities')->insert(['id' => $facilityId]);
+        DB::table('facilities')->insert(['id' => $facilityId, 'name' => 'Test Lab', 'code' => 'TEST-LAB', 'status' => 'available', 'capacity' => 30]);
         [$parentSocket, $childSocket] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
         $childPid = pcntl_fork();
         if ($childPid === -1) self::fail('Could not fork a child process for the concurrency test.');
