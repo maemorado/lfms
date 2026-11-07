@@ -111,6 +111,10 @@ final class UserManagementService
 
         DB::transaction(function () use ($actorId, $userId, $data): void {
             $this->setActor($actorId);
+            // Keep lock order consistent with status changes: Admin role, then profile.
+            if (array_key_exists('role', $data)) {
+                DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
+            }
             $profile = DB::table('profiles')->where('id', $userId)->lockForUpdate()->first();
             if (!$profile) throw new UserManagementException('The requested account was not found.', 404);
 
@@ -127,8 +131,6 @@ final class UserManagementService
             }
 
             if (array_key_exists('role', $data)) {
-                // Serialize privileged role changes so concurrent requests cannot remove every active Admin.
-                DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
                 $role = $this->findAssignableRole($data['role']);
                 $currentIsAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
                     ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
