@@ -217,6 +217,9 @@ final class UserManagementService
             foreach (['full_name', 'employee_id'] as $field) {
                 if (array_key_exists($field, $data)) $updates[$field] = $data[$field];
             }
+            if (!empty($updates['employee_id']) && DB::table('profiles')->where('employee_id', $updates['employee_id'])->where('id', '<>', $userId)->exists()) {
+                throw new UserManagementException('That employee ID is already assigned to another account.', 422);
+            }
             if ($updates !== []) {
                 $updates['updated_at'] = now();
                 DB::table('profiles')->where('id', $userId)->update($updates);
