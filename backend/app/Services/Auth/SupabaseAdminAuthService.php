@@ -14,7 +14,7 @@ final class SupabaseAdminAuthService
         $secret = (string) config('supabase.secret_key');
 
         if ($url === '' || $secret === '') {
-            throw new RuntimeException('Supabase Auth administration is not configured. Set SUPABASE_SECRET_KEY in the Laravel environment.');
+            throw new UserManagementException('Account administration is not configured on the server.', 503);
         }
 
         return Http::acceptJson()
@@ -32,13 +32,15 @@ final class SupabaseAdminAuthService
         );
 
         if (!$response->successful()) {
-            $message = $response->json('msg') ?? $response->json('message') ?? 'Supabase could not send the account invitation.';
-            throw new RuntimeException(is_string($message) ? $message : 'Supabase could not send the account invitation.');
+            if (in_array($response->status(), [400, 409, 422], true)) {
+                throw new UserManagementException('The invitation could not be sent. Confirm the email is not already registered and the invitation redirect URL is allow-listed.', 422);
+            }
+            throw new UserManagementException('Supabase could not send the account invitation.', 502);
         }
 
         $id = $response->json('id');
         if (!is_string($id) || !Str::isUuid($id)) {
-            throw new RuntimeException('Supabase Auth returned an invalid invited-user identity.');
+            throw new UserManagementException('Supabase Auth returned an invalid invitation response.', 502);
         }
 
         return $id;
@@ -53,7 +55,7 @@ final class SupabaseAdminAuthService
         );
 
         if (!$response->successful()) {
-            throw new RuntimeException('Supabase could not update the account authentication status.');
+            throw new UserManagementException('Supabase could not update the account authentication status.', 502);
         }
     }
 
@@ -64,7 +66,7 @@ final class SupabaseAdminAuthService
         );
 
         if (!$response->successful() && $response->status() !== 404) {
-            throw new RuntimeException('Supabase could not roll back the newly-created Auth account.');
+            throw new UserManagementException('Supabase could not complete account rollback. Contact an administrator to verify the invited Auth account.', 502);
         }
     }
 }
