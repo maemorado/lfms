@@ -17,4 +17,18 @@ class AuthController extends Controller
             ],
         ]);
     }
+
+    public function access(Request $request): JsonResponse
+    {
+        $context = $request->attributes->get('lfms_authorization');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'profile' => $context['profile'],
+                'roles' => $context['roles'],
+                'permissions' => $context['permissions'],
+            ],
+        ]);
+    }
 }
