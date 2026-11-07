@@ -9,6 +9,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class ApiArchitectureTest extends TestCase
@@ -89,6 +91,22 @@ class ApiArchitectureTest extends TestCase
         $this->assertSame(2, $payload['meta']['pagination']['per_page']);
         $this->assertSame(7, $payload['meta']['pagination']['total']);
         $this->assertSame(4, $payload['meta']['pagination']['last_page']);
+    }
+
+
+    public function test_validation_exception_uses_the_standard_api_error_envelope(): void
+    {
+        Route::post('/api/v1/test-validation-contract', function (Request $request) {
+            validator($request->all(), ['name' => ['required', 'string']])->validate();
+
+            return ApiResponse::success(['name' => $request->input('name')]);
+        });
+
+        $this->postJson('/api/v1/test-validation-contract', [])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 'validation_error')
+            ->assertJsonStructure(['success', 'message', 'code', 'errors' => ['name']]);
     }
 
     public function test_database_transaction_rolls_back_partial_writes_on_failure(): void
