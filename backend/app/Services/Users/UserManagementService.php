@@ -121,10 +121,12 @@ final class UserManagementService
             }
 
             if (array_key_exists('role', $data)) {
+                // Serialize privileged role changes so concurrent requests cannot remove every active Admin.
+                DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
                 $role = $this->findAssignableRole($data['role']);
                 $currentIsAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
                     ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
-                if ($currentIsAdmin && $role->name !== 'admin' && !$this->hasOtherActiveAdmin($userId)) {
+                if ($profile->status === 'active' && $currentIsAdmin && $role->name !== 'admin' && !$this->hasOtherActiveAdmin($userId)) {
                     throw new UserManagementException('This change would remove the last active Admin account.', 422);
                 }
                 $this->replaceRole($actorId, $userId, $role->id, $role->name);
@@ -149,26 +151,33 @@ final class UserManagementService
             throw new UserManagementException('Unsupported account status.', 422);
         }
 
-        $profile = DB::table('profiles')->where('id', $userId)->first();
-        if (!$profile) throw new UserManagementException('The requested account was not found.', 404);
-        if ($profile->status === $status) return $this->find($userId);
+        $initialProfile = DB::table('profiles')->where('id', $userId)->first();
+        if (!$initialProfile) throw new UserManagementException('The requested account was not found.', 404);
+        if ($initialProfile->status === $status) return $this->find($userId);
 
-        $isAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
-            ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
-        if ($status !== 'active' && $isAdmin && !$this->hasOtherActiveAdmin($userId)) {
-            throw new UserManagementException('This change would deactivate the last active Admin account.', 422);
-        }
-
-        // Update Supabase Auth first. If the database update fails, restore the previous Auth state.
-        $this->auth->setBanned($userId, $status !== 'active');
         try {
             DB::transaction(function () use ($actorId, $userId, $status): void {
                 $this->setActor($actorId);
+                // Serialize status changes against role changes using the canonical Admin role row.
+                DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
+                $profile = DB::table('profiles')->where('id', $userId)->lockForUpdate()->first();
+                if (!$profile) throw new UserManagementException('The requested account was not found.', 404);
+                if ($profile->status === $status) return;
+
+                $isAdmin = DB::table('user_roles')->join('roles', 'roles.id', '=', 'user_roles.role_id')
+                    ->where('user_roles.user_id', $userId)->where('roles.name', 'admin')->exists();
+                if ($status !== 'active' && $profile->status === 'active' && $isAdmin && !$this->hasOtherActiveAdmin($userId)) {
+                    throw new UserManagementException('This change would deactivate the last active Admin account.', 422);
+                }
+
+                // Keep the auth ban and profile status transition in one guarded workflow.
+                // If a later database operation fails, the catch below restores the prior Auth state.
+                $this->auth->setBanned($userId, $status !== 'active');
                 DB::table('profiles')->where('id', $userId)->update(['status' => $status, 'updated_at' => now()]);
                 $this->activity($actorId, $userId, $status === 'active' ? 'account.activated' : 'account.deactivated', []);
             });
         } catch (Throwable $exception) {
-            try { $this->auth->setBanned($userId, $profile->status !== 'active'); } catch (Throwable) { /* preserve original error */ }
+            try { $this->auth->setBanned($userId, $initialProfile->status !== 'active'); } catch (Throwable) { /* preserve original error */ }
             throw $exception;
         }
 
