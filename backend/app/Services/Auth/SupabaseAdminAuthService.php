@@ -49,7 +49,7 @@ final class SupabaseAdminAuthService
     /** Ban duration of 100 years effectively blocks sign-in and token refresh. */
     public function setBanned(string $userId, bool $banned): void
     {
-        $response = $this->client()->patch(
+        $response = $this->client()->put(
             rtrim((string) config('supabase.url'), '/').'/auth/v1/admin/users/'.$userId,
             ['ban_duration' => $banned ? '876000h' : 'none'],
         );
