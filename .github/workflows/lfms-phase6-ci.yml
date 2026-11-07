@@ -31,7 +31,7 @@ jobs:
         working-directory: backend
         env:
           APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-        run: php artisan test
+        run: vendor/bin/phpunit
 
   frontend:
     name: Frontend lint and build

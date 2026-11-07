@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, CalendarDays, Check, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ArrowLeft, Check, Plus, RefreshCw, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cancelReservation, checkFacilityAvailability, createReservation, decideReservation, getApiError, getReservation, listFacilities, listReservations, updateReservation, type Facility, type Pagination, type Reservation, type ReservationInput } from "@/services/facility-reservation";
