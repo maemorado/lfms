@@ -3,6 +3,7 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import UserManagementPage from "@/pages/UserManagementPage";
 import ProfilePage from "@/pages/ProfilePage";
+import InviteAcceptancePage from "@/pages/InviteAcceptancePage";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@/routes/PublicOnlyRoute";
 
@@ -24,6 +25,7 @@ function NotFoundPage() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/auth/accept-invite" element={<InviteAcceptancePage />} />
       <Route
         path="/login"
         element={
