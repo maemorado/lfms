@@ -89,6 +89,10 @@ final class FacilityReservationApiTest extends TestCase
     {
         $this->authenticate(self::ADMIN_ID, 'admin', ['reservations.view','reservations.manage']);
         $service = Mockery::mock(ReservationManagementService::class);
+        $service->shouldReceive('find')->once()->with(self::RESOURCE_ID, self::ADMIN_ID, true)->andReturn([
+            'id' => self::RESOURCE_ID, 'requester_id' => self::STAFF_ID, 'status' => 'pending',
+            'start_at' => '2027-01-01T10:00:00Z', 'end_at' => '2027-01-01T11:00:00Z',
+        ]);
         $service->shouldReceive('decide')->once()
             ->with(self::ADMIN_ID, self::RESOURCE_ID, 'approved', 'Reviewed')
             ->andReturn([
@@ -166,6 +170,10 @@ final class FacilityReservationApiTest extends TestCase
     {
         $this->authenticate(self::STAFF_ID, 'staff_sa', ['reservations.view','reservations.create']);
         $service = Mockery::mock(ReservationManagementService::class);
+        $service->shouldReceive('find')->once()->with(self::RESOURCE_ID, self::STAFF_ID, false)->andReturn([
+            'id' => self::RESOURCE_ID, 'requester_id' => self::STAFF_ID, 'status' => 'pending',
+            'start_at' => '2027-01-01T10:00:00Z', 'end_at' => '2027-01-01T11:00:00Z',
+        ]);
         $service->shouldReceive('cancel')->once()
             ->with(self::STAFF_ID, self::RESOURCE_ID, 'Schedule changed', false)
             ->andReturn([
