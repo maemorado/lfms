@@ -6,6 +6,9 @@ use App\Exceptions\FacilityReservationException;
 use App\Services\Reservations\ReservationManagementService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
+use PDO;
+use PDOException;
+use Throwable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -162,6 +165,67 @@ final class PostgresReservationConstraintTest extends TestCase
 
         self::assertSame('pending', DB::table('reservations')->where('id', $secondId)->value('status'));
         self::assertSame(1, DB::table('reservation_approvals')->count());
+    }
+
+
+    public function test_postgres_exclusion_constraint_rejects_overlapping_concurrent_transactions(): void
+    {
+        if (!function_exists('pcntl_fork')) {
+            self::markTestSkipped('The concurrent transaction test requires the pcntl extension.');
+        }
+
+        $facilityId = (string)Str::uuid();
+        DB::table('facilities')->insert(['id' => $facilityId]);
+        [$parentSocket, $childSocket] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+        $childPid = pcntl_fork();
+        if ($childPid === -1) self::fail('Could not fork a child process for the concurrency test.');
+
+        if ($childPid === 0) {
+            fclose($parentSocket);
+            try {
+                $pdo = $this->newPostgresConnection();
+                $pdo->beginTransaction();
+                $statement = $pdo->prepare('INSERT INTO reservations (id, facility_id, start_at, end_at, status) VALUES (?, ?, ?, ?, ?)');
+                $statement->execute([(string)Str::uuid(), $facilityId, '2030-04-01 09:00:00+00', '2030-04-01 10:00:00+00', 'approved']);
+                fwrite($childSocket, "READY\n");
+                usleep(400000);
+                $pdo->commit();
+                fwrite($childSocket, "COMMITTED\n");
+                fclose($childSocket);
+                exit(0);
+            } catch (Throwable $exception) {
+                fwrite($childSocket, 'ERROR: '.$exception->getMessage()."\n");
+                fclose($childSocket);
+                exit(1);
+            }
+        }
+
+        fclose($childSocket);
+        $ready = trim((string)fgets($parentSocket));
+        self::assertSame('READY', $ready);
+        $pdo = $this->newPostgresConnection();
+        $pdo->beginTransaction();
+        try {
+            $statement = $pdo->prepare('INSERT INTO reservations (id, facility_id, start_at, end_at, status) VALUES (?, ?, ?, ?, ?)');
+            $statement->execute([(string)Str::uuid(), $facilityId, '2030-04-01 09:30:00+00', '2030-04-01 10:30:00+00', 'approved']);
+            self::fail('The concurrent overlapping reservation should violate the exclusion constraint.');
+        } catch (PDOException $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            self::assertSame('23P01', $exception->errorInfo[0] ?? null);
+        } finally {
+            $committed = trim((string)fgets($parentSocket));
+            fclose($parentSocket);
+            pcntl_waitpid($childPid, $childStatus);
+        }
+        self::assertSame('COMMITTED', $committed);
+        self::assertSame(0, pcntl_wexitstatus($childStatus));
+    }
+
+    private function newPostgresConnection(): PDO
+    {
+        $config = config('database.connections.pgsql');
+        $dsn = sprintf('pgsql:host=%s;port=%s;dbname=%s', $config['host'], $config['port'], $config['database']);
+        return new PDO($dsn, $config['username'], $config['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     }
 
 }
