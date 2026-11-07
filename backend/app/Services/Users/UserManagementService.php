@@ -7,7 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\\Exceptions\\UserManagementException;
+use App\Exceptions\UserManagementException;
 use Throwable;
 
 final class UserManagementService
