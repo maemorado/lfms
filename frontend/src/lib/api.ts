@@ -7,6 +7,13 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
 
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiBaseUrl = configuredApiBaseUrl || (import.meta.env.DEV ? "http://localhost:8000/api" : undefined);
+// In local development, Vite (5173) and Laravel (8000) run on separate
+// origins. Default to Laravel's API instead of allowing auth requests to fall
+// through to Vite's SPA index.html when VITE_API_BASE_URL is missing.
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const apiBaseUrl =
+  configuredApiBaseUrl ||
+  (import.meta.env.DEV ? "http://localhost:8000/api" : undefined);
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
