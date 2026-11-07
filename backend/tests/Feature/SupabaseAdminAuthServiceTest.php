@@ -47,7 +47,7 @@ class SupabaseAdminAuthServiceTest extends TestCase
 
         app(SupabaseAdminAuthService::class)->setBanned('44444444-4444-4444-8444-444444444444', true);
 
-        Http::assertSent(fn ($request) => $request->method() === 'PATCH'
+        Http::assertSent(fn ($request) => $request->method() === 'PUT'
             && $request->hasHeader('apikey', 'test-server-secret')
             && $request['ban_duration'] === '876000h');
     }
