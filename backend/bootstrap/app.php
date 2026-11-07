@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UserManagementException;
 use App\Http\Middleware\AuthenticateSupabaseUser;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
 use App\Http\Middleware\RequirePermission;
@@ -56,6 +57,22 @@ return Application::configure(basePath: dirname(__DIR__))
             return $isApi($request)
                 ? ApiResponse::error('The requested resource was not found.', 404, 'not_found')
                 : null;
+        });
+
+        $exceptions->render(function (UserManagementException $exception, Request $request) use ($isApi) {
+            if (!$isApi($request)) {
+                return null;
+            }
+
+            $status = $exception->httpStatus;
+            $code = match ($status) {
+                403 => 'forbidden',
+                404 => 'not_found',
+                422 => 'validation_error',
+                default => 'user_management_error',
+            };
+
+            return ApiResponse::error($exception->getMessage(), $status, $code);
         });
 
         $exceptions->render(function (QueryException $exception, Request $request) use ($isApi) {
