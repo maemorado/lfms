@@ -8,7 +8,6 @@ use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use RuntimeException;
 
 final class UserManagementController extends Controller
 {
@@ -90,10 +89,4 @@ final class UserManagementController extends Controller
         return ApiResponse::success(['profile' => $this->users->updateOwnProfile($userId, $data)], 'Your profile was updated successfully.');
     }
 
-    public static function renderServiceError(RuntimeException $exception): JsonResponse
-    {
-        $status = in_array($exception->getCode(), [403, 404, 422], true) ? $exception->getCode() : 500;
-        $code = match ($status) { 403 => 'forbidden', 404 => 'not_found', 422 => 'validation_error', default => 'user_management_error' };
-        return ApiResponse::error($exception->getMessage(), $status, $code);
-    }
 }
