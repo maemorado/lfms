@@ -8,13 +8,15 @@ const adminModules = [
   ["Reservations", "reservations.manage", CalendarDays], ["Inventory", "inventory.manage", Package],
   ["Borrowing", "borrowing.manage", ClipboardList], ["Maintenance", "maintenance.manage", Wrench],
   ["Incidents", "incidents.manage", AlertTriangle], ["Notifications", "notifications.manage", Bell],
-  ["Announcements", "settings.manage", Megaphone], ["Activity logs", "audit.view", ClipboardList],
+  ["Announcements", "notifications.manage", Megaphone], ["Activity logs", "audit.view", ClipboardList],
+  ["Reports", "reports.view", ClipboardList], ["Settings", "settings.manage", ShieldCheck],
 ] as const;
 const staffModules = [
   ["Facilities", "facilities.view", Warehouse], ["Reservations", "reservations.create", CalendarDays],
   ["Inventory", "inventory.view", Package], ["Borrowing", "borrowing.request", ClipboardList],
   ["Maintenance", "maintenance.create", Wrench], ["Incidents", "incidents.create", AlertTriangle],
-  ["Notifications", "notifications.view_own", Bell],
+  ["Notifications", "notifications.view_own", Bell], ["Announcements", null, Megaphone],
+  ["Activity history", null, ClipboardList],
 ] as const;
 
 export default function DashboardPage() {
@@ -22,7 +24,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const modules = (roles.includes("admin") ? adminModules : staffModules).filter(([, permission]) => can(permission));
+  const modules = (roles.includes("admin") ? adminModules : staffModules).filter(([, permission]) => permission === null || can(permission));
   const handleSignOut = async () => {
     setSigningOut(true); setError(null);
     try { await signOut(); navigate("/login", { replace: true }); }
