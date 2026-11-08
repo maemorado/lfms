@@ -15,10 +15,10 @@
 
 ## Supported event notifications
 
-- Reservation inserted (Admin recipients); reservation status changes (requester); requester cancellation (Admin recipients).
-- Borrowing request inserted (Admin recipients); approval/rejection/cancellation status changes (borrower); items released (borrower); return transaction processed (borrower).
-- Maintenance request inserted (Admin recipients); maintenance status changes and completion (reporter).
-- Incident report inserted (Admin recipients); status changes and resolution/investigation updates (reporter).
+- Reservation inserted (Admin recipients and requester confirmation); reservation status changes (requester); requester cancellation (Admin recipients).
+- Borrowing request inserted (Admin recipients and borrower confirmation); approval/rejection/cancellation status changes (borrower); items released (borrower); return transaction processed (borrower).
+- Maintenance request inserted (Admin recipients and reporter confirmation); maintenance status changes and completion (reporter).
+- Incident report inserted (Admin recipients and reporter confirmation); status changes and resolution/investigation updates (reporter).
 - Announcement publication (all active Admin and Staff/SA profiles).
 - Overdue borrowing (borrower; checked when an Admin opens the notification center).
 
