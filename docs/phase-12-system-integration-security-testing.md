@@ -1,6 +1,6 @@
 # Phase 12 — System Integration, Security and Comprehensive Testing
 
-**Status:** In progress. This document records inspected evidence and work on `feat/lfms-system-integration-security-testing`. It is not a production-readiness declaration.
+**Status:** In progress — automated CI passed; live role-based E2E and approval-gated database fixes remain outstanding. This document records inspected evidence and work on `feat/lfms-system-integration-security-testing`. It is not a production-readiness declaration.
 
 ## Baseline and Git review
 
@@ -38,8 +38,8 @@
 | Medium | `announcements_select_published` checks published status and `published_at`, but not `expires_at`. Expired announcements can remain readable through direct authenticated PostgREST access even though the Laravel announcements endpoint filters expiry. | Unresolved — RLS policy change requires explicit approval. |
 | Low | Supabase leaked-password protection is disabled according to the security advisor. | Unresolved — project Auth setting not changed. |
 | High-risk trust boundary | Privileged Laravel database operations bypass RLS. The application must enforce authentication, permission, and ownership checks on every route. | Reviewed in the inspected user-management and facility/reservation paths; broader live adversarial testing remains pending. |
-| Functional integration | Phase 6 facility/reservation code was not present on mainline because PR #13 targeted a feature branch. | Restored selectively in this Phase 12 branch; CI and live workflow verification pending. |
-| Data accuracy | Phase 11 date-only upper bounds excluded records later on the selected end date; the dashboard published-announcement metric counted expired announcements. | Application fixes and regression tests added; execution pending CI. |
+| Functional integration | Phase 6 facility/reservation code was not present on mainline because PR #13 targeted a feature branch. | Restored selectively in this Phase 12 branch; automated CI passes, but live workflows remain unverified. |
+| Data accuracy | Phase 11 date-only upper bounds excluded records later on the selected end date; the dashboard published-announcement metric counted expired announcements. | Application fixes added; regression tests passed in CI. |
 
 ## Integration changes in this branch
 
@@ -55,7 +55,18 @@
 
 ## Test status
 
-No local PHP, Composer, npm, browser, or live authenticated end-to-end command has been executed from this repository connector. GitHub Actions results will be recorded after the Phase 12 pull request is opened. Mocked HTTP tests do not prove live JWT, RLS, Storage, or notification-trigger behavior.
+**Latest GitHub Actions run #12: all three jobs passed.**
+
+- Laravel feature suite: **60 tests, 179 assertions — passed**.
+- PostgreSQL reservation concurrency suite: **4 tests, 10 assertions — passed**.
+- Frontend ESLint and TypeScript/Vite production build — **passed**.
+- ESLint still reports one existing Fast Refresh warning in `AuthContext.tsx`; the Vite build reports a large-chunk warning.
+- Full frontend `npm audit`: **12 vulnerabilities (2 low, 10 moderate)** in the development dependency tree. Production-only `npm audit --omit=dev`: **0 vulnerabilities**. The workflow records audit output but does not auto-apply breaking dependency upgrades.
+- The Phase 12 PostgreSQL test job passed against its isolated local `lfms_test` service database. This does not exercise the live Supabase database.
+
+The tests above are automated CI tests, not browser-based or live authenticated end-to-end tests. Mocked HTTP tests do not prove live JWT, RLS, Storage, or notification-trigger behavior.
+
+The live Supabase project currently has **one assigned Admin user and zero assigned `staff_sa` users** in the inspected role assignment table. This prevents a real Staff/SA login workflow from being smoke-tested with the currently assigned accounts. Do not infer that Staff/SA access is operational merely because mocked authorization tests pass.
 
 Required live smoke tests still include:
 - Admin and Staff/SA login, token refresh, logout, expired/invalid token rejection.
