@@ -104,12 +104,12 @@ export default function MaintenanceIncidentPage(){
   const saveMaintenanceStatus=async(next:string)=>{
     if(!selectedMaintenance)return;setBusy(true);setError(null);
     try{
-      const updated=await updateMaintenance(selectedMaintenance.id,next);
-      setSelectedMaintenance(updated);
-      if(next==="in_progress"&&selectedMaintenance.asset_id&&can("inventory.manage")){
+      if(next==="in_progress"&&selectedMaintenance.asset_id){
         const asset=targets.assets.find(x=>x.id===selectedMaintenance.asset_id);
         if(asset?.inventory_items?.id)await updateAsset(asset.inventory_items.id,asset.id,{status:"under_repair"});
       }
+      const updated=await updateMaintenance(selectedMaintenance.id,next);
+      setSelectedMaintenance(updated);
       setNotice("Maintenance status updated.");await load();
     }catch(e){setError(maintenanceIncidentError(e));}
     finally{setBusy(false);}
@@ -133,17 +133,15 @@ export default function MaintenanceIncidentPage(){
   const saveIncident=async(nextStatus:string)=>{
     if(!selectedIncident)return;setBusy(true);setError(null);
     try{
+      if(selectedIncident.asset_id&&(selectedIncident.incident_type==="damage"||selectedIncident.incident_type==="missing")){
+        const asset=targets.assets.find(x=>x.id===selectedIncident.asset_id);
+        if(asset?.inventory_items?.id)await updateAsset(asset.inventory_items.id,asset.id,{
+          status:selectedIncident.incident_type==="missing"?"missing":"damaged",
+          ...(selectedIncident.incident_type==="damage"?{condition:"damaged"}:{}),
+        });
+      }
       const updated=await updateIncident(selectedIncident.id,{status:nextStatus,resolution:resolution.trim()||null});
       setSelectedIncident(updated);
-      if(selectedIncident.incident_type==="damage"||selectedIncident.incident_type==="missing"){
-        if(selectedIncident.asset_id&&can("inventory.manage")){
-          const asset=targets.assets.find(x=>x.id===selectedIncident.asset_id);
-          if(asset?.inventory_items?.id)await updateAsset(asset.inventory_items.id,asset.id,{
-            status:selectedIncident.incident_type==="missing"?"missing":"damaged",
-            ...(selectedIncident.incident_type==="damage"?{condition:"damaged"}:{}),
-          });
-        }
-      }
       setNotice("Incident investigation updated.");await load();
     }catch(e){setError(maintenanceIncidentError(e));}
     finally{setBusy(false);}
