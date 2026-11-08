@@ -44,6 +44,7 @@ export default function MaintenanceIncidentPage(){
   const [selectedMaintenance,setSelectedMaintenance]=useState<MaintenanceRequest|null>(null);
   const [selectedIncident,setSelectedIncident]=useState<IncidentReport|null>(null);
   const [maintenanceEvidence,setMaintenanceEvidence]=useState<{name:string;path:string}[]>([]);
+  const [relatedMaintenanceCount,setRelatedMaintenanceCount]=useState(0);
   const [resolution,setResolution]=useState("");
   const [recordRemarks,setRecordRemarks]=useState("");
   const [assignedTo,setAssignedTo]=useState("");
@@ -87,6 +88,8 @@ export default function MaintenanceIncidentPage(){
     setError(null);
     try{
       const [record,evidence]=await Promise.all([getMaintenance(id),listMaintenanceEvidence(id)]);
+      const related=await listMaintenance({per_page:100,asset_id:record.asset_id??undefined,facility_id:record.facility_id??undefined});
+      setRelatedMaintenanceCount(related.pagination?.total??related.requests.length);
       setSelectedMaintenance(record);setSelectedIncident(null);setMaintenanceEvidence(evidence);setRecordRemarks("");setAssignedTo("");setRecordCost("0");
     }catch(e){setError(maintenanceIncidentError(e));}
   };
@@ -178,7 +181,7 @@ export default function MaintenanceIncidentPage(){
 
       {selectedMaintenance&&<section className="mt-6 rounded-2xl border bg-white p-5">
         <div className="flex flex-wrap justify-between gap-3"><div><h2 className="text-lg font-semibold">Maintenance details</h2><p className="mt-1 text-xs text-slate-500">{selectedMaintenance.id} · {dateText(selectedMaintenance.created_at)}</p></div><button onClick={()=>setSelectedMaintenance(null)} className="text-sm text-slate-500">Close</button></div>
-        <p className="mt-3 text-sm text-slate-700">{selectedMaintenance.description}</p><p className="mt-2 text-xs text-slate-500">Target: {selectedMaintenance.facilities?.name??selectedMaintenance.equipment_assets?.asset_tag??"—"} · Status: {selectedMaintenance.status}</p>
+        <p className="mt-3 text-sm text-slate-700">{selectedMaintenance.description}</p><p className="mt-2 text-xs text-slate-500">Target: {selectedMaintenance.facilities?.name??selectedMaintenance.equipment_assets?.asset_tag??"—"} · Status: {selectedMaintenance.status} · Related maintenance requests: {relatedMaintenanceCount}{relatedMaintenanceCount>1?" (recurring issue)":" "}</p>
         {maintenanceAdmin&&<div className="mt-4 flex flex-wrap gap-2">{(selectedMaintenance.status==="pending"?["approved","cancelled"]:selectedMaintenance.status==="approved"?["in_progress","on_hold","cancelled"]:selectedMaintenance.status==="in_progress"?["on_hold","completed"]:selectedMaintenance.status==="on_hold"?["in_progress","completed","cancelled"]:[]).map(s=><button key={s} disabled={busy} onClick={()=>void saveMaintenanceStatus(s)} className="rounded-lg border px-3 py-2 text-sm font-semibold">{s.replaceAll("_"," ")}</button>)}</div>}
         <div className="mt-5 border-t pt-4"><h3 className="font-semibold">Maintenance activity history</h3>{selectedMaintenance.maintenance_records?.map(r=><div key={r.id} className="mt-2 rounded-lg bg-slate-50 p-3 text-sm"><p className="font-medium">{r.profiles?.full_name??r.assigned_to??"Unassigned"} · {dateText(r.started_at)} – {dateText(r.completed_at)}</p><p className="mt-1 text-slate-600">{r.remarks||"No remarks"} · Cost: {r.cost}</p></div>)}{!selectedMaintenance.maintenance_records?.length&&<p className="mt-2 text-sm text-slate-500">No maintenance activity recorded yet.</p>}</div>
         <div className="mt-5 border-t pt-4"><h3 className="font-semibold">Supporting evidence</h3>{maintenanceEvidence.map(x=><button key={x.path} onClick={()=>void openEvidence(x.path)} className="mt-2 mr-2 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"><FileText size={15}/>{x.name}</button>)}{!maintenanceEvidence.length&&<p className="mt-2 text-sm text-slate-500">No evidence uploaded.</p>}</div>
