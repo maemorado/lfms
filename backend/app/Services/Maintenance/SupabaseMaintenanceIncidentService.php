@@ -140,6 +140,8 @@ final class SupabaseMaintenanceIncidentService
         ];
         if ($options['status']) $query['status'] = 'eq.'.$options['status'];
         if ($options['priority']) $query['priority'] = 'eq.'.$options['priority'];
+        if ($options['facility_id']) $query['facility_id'] = 'eq.'.$options['facility_id'];
+        if ($options['asset_id']) $query['asset_id'] = 'eq.'.$options['asset_id'];
         if ($options['search']) $query['description'] = 'ilike.*'.str_replace(['%','_'], ['\\\\%','\\\\_'], $options['search']).'*';
 
         $result = $this->request($token, 'GET', 'maintenance_requests', $query, null, 'count=exact');
