@@ -28,7 +28,7 @@ final class ProductionReadinessTest extends TestCase
 
         $this->withToken('test-token')
             ->getJson('/api/v1/auth/me')
-            ->assertServiceUnavailable()
+            ->assertStatus(503)
             ->assertJsonPath('code', 'authentication_unavailable');
     }
 }
