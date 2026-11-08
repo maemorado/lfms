@@ -11,7 +11,7 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiBaseUrl =
   configuredApiBaseUrl ||
-  (import.meta.env.DEV ? "http://localhost:8000/api" : undefined);
+  (import.meta.env.DEV ? "http://localhost:8000/api" : "/api");
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
