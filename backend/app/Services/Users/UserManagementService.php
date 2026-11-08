@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use App\Exceptions\UserManagementException;
 use Throwable;
 
-final class UserManagementService
+class UserManagementService
 {
     public function __construct(private readonly SupabaseAdminAuthService $auth) {}
 
