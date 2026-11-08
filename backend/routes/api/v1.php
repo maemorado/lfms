@@ -1,5 +1,7 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FacilityManagementController;
+use App\Http\Controllers\Api\ReservationManagementController;
 use App\Http\Controllers\Api\DashboardReportingController;
 use App\Http\Controllers\Api\BorrowingController;
 use App\Http\Controllers\Api\InventoryController;
@@ -28,6 +30,26 @@ Route::prefix('v1')->name('api.v1.')->group(function():void{
    });
    Route::get('/profile',[UserManagementController::class,'profile'])->middleware('permission:profile.view_own')->name('profile.show');
    Route::patch('/profile',[UserManagementController::class,'updateProfile'])->middleware('permission:profile.update_own')->name('profile.update');
+   Route::prefix('facilities')->name('facilities.')->middleware('permission:facilities.view')->group(function():void{
+    Route::get('/lookups',[FacilityManagementController::class,'lookups'])->name('lookups');
+    Route::get('/',[FacilityManagementController::class,'index'])->name('index');
+    Route::get('/{facilityId}/availability',[FacilityManagementController::class,'availability'])->whereUuid('facilityId')->name('availability');
+    Route::get('/{facilityId}',[FacilityManagementController::class,'show'])->whereUuid('facilityId')->name('show');
+    Route::middleware('permission:facilities.manage')->group(function():void{
+     Route::post('/',[FacilityManagementController::class,'store'])->name('store');
+     Route::patch('/{facilityId}',[FacilityManagementController::class,'update'])->whereUuid('facilityId')->name('update');
+    });
+   });
+   Route::prefix('reservations')->name('reservations.')->middleware('permission:reservations.view')->group(function():void{
+    Route::get('/',[ReservationManagementController::class,'index'])->name('index');
+    Route::get('/{reservationId}',[ReservationManagementController::class,'show'])->whereUuid('reservationId')->name('show');
+    Route::middleware('permission:reservations.create')->group(function():void{
+     Route::post('/',[ReservationManagementController::class,'store'])->name('store');
+     Route::patch('/{reservationId}',[ReservationManagementController::class,'update'])->whereUuid('reservationId')->name('update');
+     Route::patch('/{reservationId}/cancel',[ReservationManagementController::class,'cancel'])->whereUuid('reservationId')->name('cancel');
+    });
+    Route::patch('/{reservationId}/decision',[ReservationManagementController::class,'decide'])->whereUuid('reservationId')->middleware('permission:reservations.manage')->name('decision');
+   });
    Route::prefix('notifications')->name('notifications.')->middleware('permission:notifications.view_own')->group(function():void{
     Route::get('/',[NotificationAnnouncementController::class,'notifications'])->name('index');
     Route::get('/unread-count',[NotificationAnnouncementController::class,'unreadCount'])->name('unread-count');
