@@ -6,7 +6,7 @@ use App\Exceptions\MaintenanceIncidentException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
-final class SupabaseMaintenanceIncidentService
+class SupabaseMaintenanceIncidentService
 {
     private function client(string $token)
     {

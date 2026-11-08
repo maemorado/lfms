@@ -6,7 +6,7 @@ use App\Exceptions\InventoryException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
-final class SupabaseInventoryService
+class SupabaseInventoryService
 {
     private function client(string $token)
     {

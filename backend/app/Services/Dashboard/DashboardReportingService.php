@@ -106,7 +106,7 @@ final class DashboardReportingService
                 'unresolved' => $this->count($token, 'incident_reports', ['status' => 'in.(open,under_review)']),
             ],
             'notifications' => ['unread' => $this->count($token, 'notifications', ['user_id' => 'eq.'.$userId, 'read_at' => 'is.null'])],
-            'announcements' => ['published' => $this->count($token, 'announcements', ['status' => 'eq.published', 'published_at' => 'lte.'.$now])],
+            'announcements' => ['published' => $this->count($token, 'announcements', ['status' => 'eq.published', 'published_at' => 'lte.'.$now, 'or' => '(expires_at.is.null,expires_at.gt.'.$now.')'])],
         ];
 
         $own = ['requester_id' => 'eq.'.$userId];
@@ -146,7 +146,7 @@ final class DashboardReportingService
         $published = $this->page($token, 'announcements', [
             'select' => 'id,title,content,category,published_at,expires_at',
             'status' => 'eq.published', 'published_at' => 'lte.'.$now,
-            'or' => '(expires_at.is.null,expires_at.gt.'.$now)', 'order' => 'published_at.desc',
+            'or' => '(expires_at.is.null,expires_at.gt.'.$now.')', 'order' => 'published_at.desc',
         ], 1, 5);
         $reservationScope = $admin ? [] : ['requester_id' => 'eq.'.$userId];
         $current = $this->page($token, 'reservations', [

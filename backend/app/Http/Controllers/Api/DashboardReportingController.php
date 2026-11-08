@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Dashboard\DashboardReportingService;
 use App\Support\Api\ApiResponse;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,25 @@ final class DashboardReportingController extends Controller
     {
         $permissions = $request->attributes->get('lfms_authorization')['permissions'] ?? [];
         return is_array($permissions) && in_array('reports.view', $permissions, true);
+    }
+
+    /**
+     * HTML date inputs send YYYY-MM-DD. Convert date-only bounds to the
+     * beginning/end of that calendar day so timestamp columns include the
+     * entire selected end date. Explicit datetimes remain unchanged.
+     */
+    private function normalizeDateBounds(array $options): array
+    {
+        foreach (['from' => false, 'to' => true] as $key => $endOfDay) {
+            $value = $options[$key] ?? null;
+            if (is_string($value) && preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $value) === 1) {
+                $date = CarbonImmutable::parse($value, (string) config('app.timezone'));
+                $options[$key] = ($endOfDay ? $date->endOfDay() : $date->startOfDay())
+                    ->format('Y-m-d\\TH:i:s.uP');
+            }
+        }
+
+        return $options;
     }
 
     public function dashboard(Request $request): JsonResponse
@@ -41,7 +61,7 @@ final class DashboardReportingController extends Controller
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        $options = array_merge(['from' => null, 'to' => null, 'status' => null, 'search' => null, 'page' => 1, 'per_page' => 20], $options);
+        $options = $this->normalizeDateBounds(array_merge(['from' => null, 'to' => null, 'status' => null, 'search' => null, 'page' => 1, 'per_page' => 20], $options));
         return ApiResponse::success($this->service->report($this->token($request), $options), 'Report records retrieved successfully.');
     }
 
@@ -57,7 +77,7 @@ final class DashboardReportingController extends Controller
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        $options = array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options);
+        $options = $this->normalizeDateBounds(array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options));
         if (!$admin) $options['user_id'] = null;
         return ApiResponse::success($this->service->activity($this->token($request), $this->actor($request), $admin, $options), 'Activity history retrieved successfully.');
     }
@@ -74,7 +94,7 @@ final class DashboardReportingController extends Controller
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        $options = array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options);
+        $options = $this->normalizeDateBounds(array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options));
         return ApiResponse::success($this->service->audit($this->token($request), $options), 'Row-level audit history retrieved successfully.');
     }
 }
