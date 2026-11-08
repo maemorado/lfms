@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardReportingController;
 use App\Http\Controllers\Api\BorrowingController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MaintenanceIncidentController;
@@ -14,6 +15,13 @@ Route::prefix('v1')->name('api.v1.')->group(function():void{
   Route::get('/auth/me',[AuthController::class,'me'])->name('auth.me');
   Route::middleware(LoadLfmsAuthorizationContext::class)->group(function():void{
    Route::get('/auth/access',[AuthController::class,'access'])->name('auth.access');
+   Route::get('/dashboard',[DashboardReportingController::class,'dashboard'])->middleware('permission:profile.view_own')->name('dashboard');
+   Route::prefix('reports')->name('reports.')->middleware('permission:reports.view')->group(function():void{
+    Route::get('/',[DashboardReportingController::class,'report'])->name('index');
+   });
+   Route::get('/activity',[DashboardReportingController::class,'activity'])->middleware('permission:profile.view_own')->name('activity.index');
+   Route::get('/audit',[DashboardReportingController::class,'audit'])->middleware('permission:audit.view')->name('audit.index');
+
    Route::prefix('users')->name('users.')->middleware('permission:accounts.view')->group(function():void{
     Route::get('/roles',[UserManagementController::class,'roles'])->name('roles');Route::get('/',[UserManagementController::class,'index'])->name('index');Route::get('/{userId}',[UserManagementController::class,'show'])->whereUuid('userId')->name('show');
     Route::middleware('permission:accounts.manage')->group(function():void{Route::post('/',[UserManagementController::class,'store'])->name('store');Route::patch('/{userId}',[UserManagementController::class,'update'])->whereUuid('userId')->name('update');Route::patch('/{userId}/status',[UserManagementController::class,'setStatus'])->whereUuid('userId')->name('status');});
