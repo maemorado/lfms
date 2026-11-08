@@ -12,11 +12,19 @@ use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 final class BorrowingController extends Controller {
- public function __construct(private readonly SupabaseBorrowingService $borrowing,private readonly SupabaseInventoryService $inventory){}
+ public function __construct(private readonly SupabaseBorrowingService $borrowing,private readonly SupabaseInventoryService $inventory,private readonly SupabaseMaintenanceIncidentService $maintenance){}
  private function token(Request $r):string{return (string)$r->bearerToken();}
  public function inventory(BorrowingIndexRequest $r):JsonResponse{
   $v=$this->inventory->listItems($this->token($r),['page'=>(int)$r->query('page',1),'per_page'=>(int)$r->query('per_page',20),'status'=>'active','sort'=>'name','direction'=>'asc','search'=>$r->query('search')]);
-  $items=array_values(array_filter($v['items'],fn($i)=>($i['item_type']??'')==='equipment'?((int)($i['available_assets']??0)>0):((float)($i['quantity_on_hand']??0)>0)));
+  $blocked=array_fill_keys($this->maintenance->blockedEquipmentAssetIds($this->token($r)),true);
+  $items=array_values(array_filter(array_map(function($item)use($blocked){
+   if(($item['item_type']??'')==='equipment'){
+    $assets=array_values(array_filter($item['equipment_assets']??[],fn($asset)=>($asset['status']??null)==='available'&&!isset($blocked[$asset['id']??''])));
+    $item['equipment_assets']=$assets;$item['available_assets']=count($assets);$item['availability']=$assets!==[]?'available':'unavailable';
+    return $item;
+   }
+   return $item;
+  },$v['items']),fn($i)=>($i['item_type']??'')==='equipment'?((int)($i['available_assets']??0)>0):((float)($i['quantity_on_hand']??0)>0)));
   return ApiResponse::success(['items'=>$items],'Borrowable inventory retrieved successfully.',200,['pagination'=>$v['pagination']]);
  }
  public function index(BorrowingIndexRequest $r):JsonResponse{$v=$this->borrowing->requests($this->token($r),$r->options());return ApiResponse::success(['requests'=>$v['requests']],'Borrowing requests retrieved successfully.',200,['pagination'=>$v['pagination']]);}
