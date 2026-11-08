@@ -81,4 +81,25 @@ final class NotificationAnnouncementApiTest extends TestCase
         $this->app->instance(SupabaseNotificationAnnouncementService::class,$service);
         $this->withToken('staff-token')->getJson('/api/v1/notifications/'.self::RECORD)->assertNotFound();
     }
+
+    public function test_staff_can_mark_only_their_own_notification_as_read(): void
+    {
+        $this->fakeUser(self::STAFF,'staff_sa',['notifications.view_own']);
+        $service=Mockery::mock(SupabaseNotificationAnnouncementService::class);
+        $service->shouldReceive('markNotificationRead')->once()->with('staff-token',self::STAFF,self::RECORD)
+            ->andReturn(['id'=>self::RECORD,'user_id'=>self::STAFF,'read_at'=>'2026-11-08T10:00:00Z']);
+        $this->app->instance(SupabaseNotificationAnnouncementService::class,$service);
+        $this->withToken('staff-token')->patchJson('/api/v1/notifications/'.self::RECORD.'/read')
+            ->assertOk()->assertJsonPath('data.notification.user_id',self::STAFF);
+    }
+
+    public function test_mark_all_read_uses_only_the_authenticated_user_id(): void
+    {
+        $this->fakeUser(self::STAFF,'staff_sa',['notifications.view_own']);
+        $service=Mockery::mock(SupabaseNotificationAnnouncementService::class);
+        $service->shouldReceive('markAllNotificationsRead')->once()->with('staff-token',self::STAFF)->andReturn(4);
+        $this->app->instance(SupabaseNotificationAnnouncementService::class,$service);
+        $this->withToken('staff-token')->postJson('/api/v1/notifications/read-all')
+            ->assertOk()->assertJsonPath('data.updated',4);
+    }
 }
