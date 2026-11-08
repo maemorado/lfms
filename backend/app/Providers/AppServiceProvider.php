@@ -12,6 +12,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(Facility::class, FacilityPolicy::class);
+        Gate::policy(Reservation::class, ReservationPolicy::class);
+
         Gate::define('permission', static function (GenericUser $user, string $permission): bool {
             $granted = $user->permissions;
             return is_array($granted) && in_array($permission, $granted, true);
