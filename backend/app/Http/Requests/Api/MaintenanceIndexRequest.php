@@ -17,6 +17,8 @@ final class MaintenanceIndexRequest extends FormRequest
             'search' => ['sometimes', 'string', 'max:160'],
             'status' => ['sometimes', Rule::in(['pending','approved','in_progress','on_hold','completed','cancelled'])],
             'priority' => ['sometimes', Rule::in(['low','medium','high','critical'])],
+            'facility_id' => ['sometimes', 'uuid'],
+            'asset_id' => ['sometimes', 'uuid'],
         ];
     }
 
@@ -29,6 +31,8 @@ final class MaintenanceIndexRequest extends FormRequest
             'search' => $v['search'] ?? null,
             'status' => $v['status'] ?? null,
             'priority' => $v['priority'] ?? null,
+            'facility_id' => $v['facility_id'] ?? null,
+            'asset_id' => $v['asset_id'] ?? null,
         ];
     }
 }
