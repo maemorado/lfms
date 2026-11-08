@@ -45,6 +45,8 @@ All endpoints are under `/api/v1` and require the existing Supabase-authenticate
 
 ## Evidence storage
 
+Applied Supabase migration version: `20261108142822` (`phase_9_private_evidence_storage`).
+
 Bucket: `lfms-evidence` (private)
 
 - Maximum file size: 10 MB.
