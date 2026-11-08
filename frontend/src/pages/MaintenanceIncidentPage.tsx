@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AlertTriangle, ArrowLeft, FileText, RefreshCw, Wrench } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateAsset } from "@/services/inventory";
 import {
@@ -21,6 +21,7 @@ const badge=(status:string)=>"inline-flex rounded-full px-2.5 py-1 text-xs font-
 const emptyPage:PageMeta={current_page:1,per_page:20,total:0,last_page:1};
 
 export default function MaintenanceIncidentPage(){
+  const [searchParams]=useSearchParams();
   const {can}=useAuth();
   const maintenanceAdmin=can("maintenance.manage");
   const [tab,setTab]=useState<Tab>("maintenance");
@@ -99,7 +100,9 @@ export default function MaintenanceIncidentPage(){
     catch(e){setError(maintenanceIncidentError(e));}
   };
 
-  useEffect(()=>{const maintenanceId=searchParams.get("maintenanceId");const incidentId=searchParams.get("incidentId");if(maintenanceId){void Promise.all([getMaintenance(maintenanceId),listMaintenanceEvidence(maintenanceId)]).then(([record,evidence])=>{setSelectedMaintenance(record);setMaintenanceEvidence(evidence);setSelectedIncident(null);}).catch(e=>setError(maintenanceIncidentError(e)));}else if(incidentId){void getIncident(incidentId).then(record=>{setSelectedIncident(record);setSelectedMaintenance(null);setResolution(record.resolution??"");}).catch(e=>setError(maintenanceIncidentError(e)));}},[searchParams]);\n\n  const saveMaintenanceStatus=async(next:string)=>{
+  useEffect(()=>{const maintenanceId=searchParams.get("maintenanceId");const incidentId=searchParams.get("incidentId");if(maintenanceId){void Promise.all([getMaintenance(maintenanceId),listMaintenanceEvidence(maintenanceId)]).then(([record,evidence])=>{setSelectedMaintenance(record);setMaintenanceEvidence(evidence);setSelectedIncident(null);}).catch(e=>setError(maintenanceIncidentError(e)));}else if(incidentId){void getIncident(incidentId).then(record=>{setSelectedIncident(record);setSelectedMaintenance(null);setResolution(record.resolution??"");}).catch(e=>setError(maintenanceIncidentError(e)));}},[searchParams]);\n\n  useEffect(()=>{const maintenanceId=searchParams.get("maintenanceId");const incidentId=searchParams.get("incidentId");if(maintenanceId){void Promise.all([getMaintenance(maintenanceId),listMaintenanceEvidence(maintenanceId)]).then(([record,evidence])=>{setSelectedMaintenance(record);setMaintenanceEvidence(evidence);setSelectedIncident(null);}).catch(e=>setError(maintenanceIncidentError(e)));}else if(incidentId){void getIncident(incidentId).then(record=>{setSelectedIncident(record);setSelectedMaintenance(null);setResolution(record.resolution??"");}).catch(e=>setError(maintenanceIncidentError(e)));}},[searchParams]);
+
+  const saveMaintenanceStatus=async(next:string)=>{
     if(!selectedMaintenance)return;setBusy(true);setError(null);
     try{
       if(next==="in_progress"&&selectedMaintenance.asset_id){
