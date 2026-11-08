@@ -99,7 +99,7 @@ export default function MaintenanceIncidentPage(){
     catch(e){setError(maintenanceIncidentError(e));}
   };
 
-  const saveMaintenanceStatus=async(next:string)=>{
+  useEffect(()=>{const maintenanceId=searchParams.get("maintenanceId");const incidentId=searchParams.get("incidentId");if(maintenanceId){void Promise.all([getMaintenance(maintenanceId),listMaintenanceEvidence(maintenanceId)]).then(([record,evidence])=>{setSelectedMaintenance(record);setMaintenanceEvidence(evidence);setSelectedIncident(null);}).catch(e=>setError(maintenanceIncidentError(e)));}else if(incidentId){void getIncident(incidentId).then(record=>{setSelectedIncident(record);setSelectedMaintenance(null);setResolution(record.resolution??"");}).catch(e=>setError(maintenanceIncidentError(e)));}},[searchParams]);\n\n  const saveMaintenanceStatus=async(next:string)=>{
     if(!selectedMaintenance)return;setBusy(true);setError(null);
     try{
       if(next==="in_progress"&&selectedMaintenance.asset_id){
