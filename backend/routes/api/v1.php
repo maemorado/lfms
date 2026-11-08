@@ -2,6 +2,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BorrowingController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\MaintenanceIncidentController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
 use App\Support\Api\ApiResponse;
@@ -36,6 +37,23 @@ Route::prefix('v1')->name('api.v1.')->group(function():void{
     Route::get('/records/{transactionId}',[BorrowingController::class,'borrowingDetail'])->whereUuid('transactionId')->name('records.show');
     Route::get('/records/{transactionId}/returns',[BorrowingController::class,'returns'])->whereUuid('transactionId')->name('records.returns');
     Route::post('/records/{transactionId}/returns',[BorrowingController::class,'processReturn'])->whereUuid('transactionId')->middleware(['permission:borrowing.manage','permission:borrowing.return'])->name('records.returns.store');
+   });
+   Route::prefix('maintenance')->name('maintenance.')->middleware('permission:maintenance.view')->group(function():void{
+    Route::get('/targets',[MaintenanceIncidentController::class,'targets'])->middleware(['permission:facilities.view','permission:inventory.view'])->name('targets');
+    Route::get('/requests',[MaintenanceIncidentController::class,'maintenanceIndex'])->name('requests.index');
+    Route::post('/requests',[MaintenanceIncidentController::class,'maintenanceStore'])->middleware('permission:maintenance.create')->name('requests.store');
+    Route::get('/requests/{requestId}',[MaintenanceIncidentController::class,'maintenanceShow'])->whereUuid('requestId')->name('requests.show');
+    Route::middleware('permission:maintenance.manage')->group(function():void{
+     Route::patch('/requests/{requestId}',[MaintenanceIncidentController::class,'maintenanceUpdate'])->whereUuid('requestId')->name('requests.update');
+     Route::post('/requests/{requestId}/records',[MaintenanceIncidentController::class,'maintenanceRecord'])->whereUuid('requestId')->name('requests.records.store');
+    });
+   });
+   Route::prefix('incidents')->name('incidents.')->middleware('permission:incidents.view')->group(function():void{
+    Route::get('/',[MaintenanceIncidentController::class,'incidentIndex'])->name('index');
+    Route::post('/',[MaintenanceIncidentController::class,'incidentStore'])->middleware('permission:incidents.create')->name('store');
+    Route::get('/{incidentId}',[MaintenanceIncidentController::class,'incidentShow'])->whereUuid('incidentId')->name('show');
+    Route::post('/{incidentId}/attachments',[MaintenanceIncidentController::class,'incidentAttachment'])->whereUuid('incidentId')->name('attachments.store');
+    Route::patch('/{incidentId}',[MaintenanceIncidentController::class,'incidentUpdate'])->whereUuid('incidentId')->middleware('permission:incidents.manage')->name('update');
    });
   });
  });
