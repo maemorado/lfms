@@ -123,6 +123,7 @@ Auth settings and allowed redirect URLs could not be read through the connected 
 ## 7. CORS, HTTPS and TLS
 
 - The Laravel CORS config allows only the configured `FRONTEND_URL`, standard API methods, and the headers required by bearer-token requests.
+- The API limiter is currently 120 requests/minute per client IP. When deploying behind a reverse proxy/load balancer, configure Laravel's trusted proxy list to the actual proxy addresses (or enforce equivalent edge rate limiting). Do not trust arbitrary client-supplied `X-Forwarded-For` values.
 - CORS credentials are disabled because LFMS uses bearer tokens.
 - Both frontend and API must be served over HTTPS.
 - Ensure the hosting PHP/OpenSSL/cURL stack supports modern TLS 1.2 cipher suites and TLS 1.3. Supabase announced that an outdated subset of TLS 1.2 ciphers will be disabled on **10 November 2026**. See the [Supabase changelog](https://supabase.com/changelog?types=breaking-change).
