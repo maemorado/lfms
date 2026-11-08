@@ -19,6 +19,7 @@ Route::prefix('v1')->name('api.v1.')->group(function():void{
     Route::get('/',[DashboardReportingController::class,'report'])->name('index');
    });
    Route::get('/activity',[DashboardReportingController::class,'activity'])->middleware('permission:profile.view_own')->name('activity.index');
+   Route::get('/audit',[DashboardReportingController::class,'audit'])->middleware('permission:audit.view')->name('audit.index');
 
    Route::prefix('users')->name('users.')->middleware('permission:accounts.view')->group(function():void{
     Route::get('/roles',[UserManagementController::class,'roles'])->name('roles');Route::get('/',[UserManagementController::class,'index'])->name('index');Route::get('/{userId}',[UserManagementController::class,'show'])->whereUuid('userId')->name('show');
