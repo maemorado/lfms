@@ -2,7 +2,7 @@
 namespace App\Services\Borrowing;
 use App\Exceptions\BorrowingException;
 use Illuminate\Support\Facades\Http;
-final class SupabaseBorrowingService {
+class SupabaseBorrowingService {
  private function client(string $token){$url=rtrim((string)config('supabase.url'),'/');$key=(string)config('supabase.publishable_key');if($url===''||$key===''||$token==='')throw new BorrowingException('Borrowing service is not configured for the authenticated session.',503);return Http::acceptJson()->withHeaders(['apikey'=>$key,'Authorization'=>'Bearer '.$token])->timeout((int)config('supabase.auth_user_timeout',10));}
  private function request(string $token,string $method,string $path,array $query=[],?array $body=null,string $prefer='return=representation'):array{$url=rtrim((string)config('supabase.url'),'/').'/rest/v1/'.$path;$client=$this->client($token)->withHeaders(['Prefer'=>$prefer]);$response=match($method){'GET'=>$client->get($url,$query),'POST'=>$client->post($url,$body??[]),default=>throw new BorrowingException('Unsupported borrowing operation.',405)};if(!$response->successful())$this->fail($response->status(),$response->body());return ['data'=>$response->json()??[],'range'=>$response->header('Content-Range')];}
  private function rpc(string $token,string $name,array $payload):array{$url=rtrim((string)config('supabase.url'),'/').'/rest/v1/rpc/'.$name;$response=$this->client($token)->post($url,$payload);if(!$response->successful())$this->fail($response->status(),$response->body());$data=$response->json();return is_array($data)?$data:[];}
