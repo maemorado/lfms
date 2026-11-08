@@ -27,6 +27,8 @@ jobs:
           coverage: none
       - name: Install backend dependencies
         run: composer install --no-interaction --prefer-dist --working-dir=backend
+      - name: Report Composer dependency advisories
+        run: composer audit --working-dir=backend || true
       - name: Run Laravel feature tests
         working-directory: backend
         env:
@@ -45,8 +47,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
-      - name: Report dependency vulnerabilities
+      - name: Report all frontend dependency vulnerabilities
         run: npm audit --prefix frontend || true
+      - name: Report production dependency vulnerabilities
+        run: npm audit --omit=dev --prefix frontend || true
       - name: Run ESLint
         run: npm run lint --prefix frontend
       - name: Build frontend
