@@ -96,6 +96,27 @@ final class MaintenanceIncidentApiTest extends TestCase
         ])->assertOk()->assertJsonPath('data.incident.status', 'under_review');
     }
 
+
+    public function test_active_damage_incidents_and_maintenance_block_equipment_from_borrowing(): void
+    {
+        Http::fake([
+            'https://example.supabase.co/rest/v1/incident_reports*' => Http::response([
+                ['asset_id' => self::TARGET],
+            ], 200),
+            'https://example.supabase.co/rest/v1/maintenance_requests*' => Http::response([
+                ['asset_id' => '66666666-6666-4666-8666-666666666666'],
+            ], 200),
+        ]);
+
+        $service = new SupabaseMaintenanceIncidentService();
+        $blocked = $service->blockedEquipmentAssetIds('staff-token');
+
+        $this->assertEqualsCanonicalizing([
+            self::TARGET,
+            '66666666-6666-4666-8666-666666666666',
+        ], $blocked);
+    }
+
     public function test_invalid_maintenance_status_is_rejected_before_service_call(): void
     {
         $this->fakeUser(self::ADMIN, 'admin', ['maintenance.view', 'maintenance.manage']);
