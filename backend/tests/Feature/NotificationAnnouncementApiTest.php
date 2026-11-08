@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\Notifications\\SupabaseNotificationAnnouncementService;
-use Illuminate\\Support\\Facades\\Http;
+use App\Services\Notifications\SupabaseNotificationAnnouncementService;
+use Illuminate\Support\Facades\Http;
 use Mockery;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 final class NotificationAnnouncementApiTest extends TestCase
 {
@@ -77,7 +77,7 @@ final class NotificationAnnouncementApiTest extends TestCase
     {
         $this->fakeUser(self::STAFF,'staff_sa',['notifications.view_own']);
         $service=Mockery::mock(SupabaseNotificationAnnouncementService::class);
-        $service->shouldReceive('notification')->once()->with('staff-token',self::STAFF,self::RECORD)->andThrow(new \\App\\Exceptions\\NotificationAnnouncementException('Notification not found.',404));
+        $service->shouldReceive('notification')->once()->with('staff-token',self::STAFF,self::RECORD)->andThrow(new \App\Exceptions\NotificationAnnouncementException('Notification not found.',404));
         $this->app->instance(SupabaseNotificationAnnouncementService::class,$service);
         $this->withToken('staff-token')->getJson('/api/v1/notifications/'.self::RECORD)->assertNotFound();
     }
