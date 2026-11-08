@@ -178,4 +178,16 @@ final class DashboardReportingService
         if ($admin && $options['user_id']) $query['user_id'] = 'eq.'.$options['user_id'];
         return $this->page($token, 'activity_logs', $query, $options['page'], $options['per_page']);
     }
+
+    public function audit(string $token, array $options): array
+    {
+        $query = ['select' => 'id,user_id,table_name,record_id,action,created_at,profiles!audit_logs_user_id_fkey(id,full_name)', 'order' => 'created_at.desc'];
+        if ($options['user_id']) $query['user_id'] = 'eq.'.$options['user_id'];
+        if ($options['module']) $query['table_name'] = 'eq.'.$options['module'];
+        if ($options['action']) $query['action'] = 'eq.'.strtoupper($options['action']);
+        if ($options['from'] && $options['to']) $query['and'] = '(created_at.gte.'.$options['from'].',created_at.lte.'.$options['to'].')';
+        elseif ($options['from']) $query['created_at'] = 'gte.'.$options['from'];
+        elseif ($options['to']) $query['created_at'] = 'lte.'.$options['to'];
+        return $this->page($token, 'audit_logs', $query, $options['page'], $options['per_page']);
+    }
 }
