@@ -1,16 +1,16 @@
 <?php
 
-namespace App\\Http\\Controllers\\Api;
+namespace App\Http\Controllers\Api;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Http\\Requests\\Api\\AnnouncementIndexRequest;
-use App\\Http\\Requests\\Api\\NotificationIndexRequest;
-use App\\Http\\Requests\\Api\\StoreAnnouncementRequest;
-use App\\Http\\Requests\\Api\\UpdateAnnouncementRequest;
-use App\\Services\\Notifications\\SupabaseNotificationAnnouncementService;
-use App\\Support\\Api\\ApiResponse;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\AnnouncementIndexRequest;
+use App\Http\Requests\Api\NotificationIndexRequest;
+use App\Http\Requests\Api\StoreAnnouncementRequest;
+use App\Http\Requests\Api\UpdateAnnouncementRequest;
+use App\Services\Notifications\SupabaseNotificationAnnouncementService;
+use App\Support\Api\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class NotificationAnnouncementController extends Controller
 {
