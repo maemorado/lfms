@@ -1,0 +1,97 @@
+name: LFMS Phase 13 Production Readiness
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/lfms-phase13-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-production:
+    name: Backend tests and production boot checks
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_URL: https://api.example.invalid
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_DATABASE: lfms_ci
+      DB_USERNAME: lfms_ci
+      DB_PASSWORD: placeholder
+      DB_SSLMODE: require
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      FRONTEND_URL: https://app.example.invalid
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      SUPABASE_AUTH_USER_TIMEOUT: "10"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_pgsql, pgsql, xml, curl, fileinfo, openssl
+          coverage: none
+      - name: Install backend dependencies
+        run: composer install --no-interaction --prefer-dist --working-dir=backend
+      - name: Check production PHP platform requirements
+        run: composer check-platform-reqs --no-dev --working-dir=backend
+      - name: Audit Composer dependencies
+        run: composer audit --working-dir=backend
+      - name: Run Laravel feature tests
+        working-directory: backend
+        env:
+          APP_ENV: testing
+          APP_DEBUG: "true"
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+          CACHE_STORE: array
+          LOG_CHANNEL: null
+        run: vendor/bin/phpunit
+      - name: Verify production configuration and route caching
+        working-directory: backend
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan event:cache
+          php artisan route:list --except-vendor
+          php artisan optimize:clear
+
+  frontend-production:
+    name: Frontend lint and production build
+    runs-on: ubuntu-latest
+    env:
+      VITE_APP_NAME: LFMS
+      VITE_API_BASE_URL: https://api.example.invalid/api
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --prefix frontend
+      - name: Run ESLint
+        run: npm run lint --prefix frontend
+      - name: Build production frontend
+        run: npm run build --prefix frontend
