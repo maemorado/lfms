@@ -158,8 +158,9 @@ final class DashboardReportingService
         $definition = self::REPORTS[$options['report']] ?? null;
         if ($definition === null) throw ValidationException::withMessages(['report' => 'The requested report is not supported.']);
         $query = ['select' => '*', 'order' => $definition['date'].'.desc'];
-        if ($options['from']) $query[$definition['date']] = 'gte.'.$options['from'];
-        if ($options['to']) $query[$definition['date']] = ($query[$definition['date']] ?? '') === '' ? 'lte.'.$options['to'] : 'gte.'.$options['from'];
+        if ($options['from'] && $options['to']) $query['and'] = '('.$definition['date'].'.gte.'.$options['from'].','.$definition['date'].'.lte.'.$options['to'].')';
+        elseif ($options['from']) $query[$definition['date']] = 'gte.'.$options['from'];
+        elseif ($options['to']) $query[$definition['date']] = 'lte.'.$options['to'];
         if ($options['status'] && $definition['status']) $query['status'] = 'eq.'.$options['status'];
         if ($options['search'] && $definition['search']) $query[$definition['search']] = 'ilike.*'.str_replace(['%','_'], ['\\%','\\_'], $options['search']).'*';
         return $this->page($token, $definition['table'], $query, $options['page'], $options['per_page']);
@@ -171,8 +172,9 @@ final class DashboardReportingService
         if (!$admin) $query['user_id'] = 'eq.'.$userId;
         if ($options['module']) $query['module'] = 'eq.'.$options['module'];
         if ($options['action']) $query['action'] = 'ilike.*'.str_replace(['%','_'], ['\\%','\\_'], $options['action']).'*';
-        if ($options['from']) $query['created_at'] = 'gte.'.$options['from'];
-        if ($options['to']) $query['created_at'] = ($query['created_at'] ?? '') === '' ? 'lte.'.$options['to'] : 'gte.'.$options['from'];
+        if ($options['from'] && $options['to']) $query['and'] = '(created_at.gte.'.$options['from'].',created_at.lte.'.$options['to'].')';
+        elseif ($options['from']) $query['created_at'] = 'gte.'.$options['from'];
+        elseif ($options['to']) $query['created_at'] = 'lte.'.$options['to'];
         if ($admin && $options['user_id']) $query['user_id'] = 'eq.'.$options['user_id'];
         return $this->page($token, 'activity_logs', $query, $options['page'], $options['per_page']);
     }
