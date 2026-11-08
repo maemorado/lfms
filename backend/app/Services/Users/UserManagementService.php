@@ -295,7 +295,11 @@ final class UserManagementService
 
     private function setActor(string $actorId): void
     {
+        // This ID comes from the Supabase Auth-verified request context.
         DB::statement("select set_config('app.current_user_id', ?, true)", [$actorId]);
+        // The reservation notification trigger uses auth.uid(); mirror the verified subject
+        // for this transaction-local privileged PostgreSQL operation.
+        DB::statement("select set_config('request.jwt.claim.sub', ?, true)", [$actorId]);
     }
 
     private function activity(string $actorId, string $targetId, string $action, array $metadata): void
