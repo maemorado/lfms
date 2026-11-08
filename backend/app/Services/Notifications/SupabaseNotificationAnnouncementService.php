@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Services\\Notifications;
+namespace App\Services\Notifications;
 
-use App\\Exceptions\\NotificationAnnouncementException;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
+use App\Exceptions\NotificationAnnouncementException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 final class SupabaseNotificationAnnouncementService
 {
@@ -180,7 +180,7 @@ final class SupabaseNotificationAnnouncementService
             $query['status']='eq.'.$options['status'];
         }
         if ($options['category']) $query['category']='eq.'.$options['category'];
-        if ($options['search']) $query['title']='ilike.*'.str_replace(['%','_'],['\\\\%','\\\\_'],$options['search']).'*';
+        if ($options['search']) $query['title']='ilike.*'.str_replace(['%','_'],['\\%','\\_'],$options['search']).'*';
         $result=$this->request($token,'GET','announcements',$query,null,'count=exact');
         return ['announcements'=>$result['data'],'pagination'=>$this->pagination($result['range']??null,$options['page'],$options['per_page'])];
     }
