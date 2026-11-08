@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Middleware\AuthenticateSupabaseUser;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
-use App\Support\Api\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
 // All API traffic is rate-limited. The limiter is configured in AppServiceProvider.
