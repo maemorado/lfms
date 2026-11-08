@@ -94,6 +94,7 @@ GitHub Actions runs the Phase 12 automated suites and the Phase 13 production-co
 ## Documentation
 
 - [Technical architecture](docs/technical-architecture.md)
+- [API reference](docs/api-reference.md)
 - [Production deployment preparation](docs/production-deployment.md)
 - [Backup and recovery](docs/backup-recovery.md)
 - [Admin and Staff/SA user guide](docs/user-guide.md)
