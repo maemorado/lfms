@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\FacilityManagementController;
 use App\Http\Controllers\Api\ReservationManagementController;
 use App\Http\Controllers\Api\DashboardReportingController;
@@ -9,7 +10,6 @@ use App\Http\Controllers\Api\MaintenanceIncidentController;
 use App\Http\Controllers\Api\NotificationAnnouncementController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
-use App\Support\Api\ApiResponse;
 use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function():void{
  Route::get('/health',[HealthController::class,'show'])->name('health');
