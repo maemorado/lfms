@@ -64,11 +64,6 @@ export default function MaintenanceIncidentPage(){
 
   useEffect(()=>{void load();},[load]);
 
-  const targetLabel=useMemo(()=>new Map([
-    ...targets.facilities.map(x=>[x.id,x.name] as const),
-    ...targets.assets.map(x=>[x.id,(x.inventory_items?.name??"Equipment")+" · "+x.asset_tag] as const),
-  ]),[targets]);
-
   const submit=async(e:FormEvent)=>{
     e.preventDefault();if(!targetId)return;
     setBusy(true);setError(null);setNotice(null);
@@ -155,7 +150,6 @@ export default function MaintenanceIncidentPage(){
   const page=tab==="maintenance"?maintenancePage:incidentPage;
   const setPage=tab==="maintenance"?setMaintenancePage:setIncidentPage;
   const activeList=tab==="maintenance"?maintenance:incidents;
-  const isMine=(id:string)=>id===profile?.id;
 
   return <main className="min-h-screen bg-slate-50">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4"><Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft size={17}/> Dashboard</Link><span className="text-sm font-semibold tracking-widest text-slate-800">LFMS / OPERATIONS</span></div></header>
