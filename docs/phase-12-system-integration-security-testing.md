@@ -1,6 +1,6 @@
 # Phase 12 — System Integration, Security and Comprehensive Testing
 
-**Status:** In progress — automated CI passed; live role-based E2E and approval-gated database fixes remain outstanding. This document records inspected evidence and work on `feat/lfms-system-integration-security-testing`. It is not a production-readiness declaration.
+**Status:** Merged to `main` through PR #19 on 8 November 2026. Automated CI passed; live role-based E2E and approval-gated database fixes remain outstanding. Merging the implementation did not close these operational/security gaps. This is not a production-readiness declaration.
 
 ## Baseline and Git review
 
@@ -8,7 +8,7 @@
 - Baseline branch: `main`
 - Baseline commit: `02c13b030a79379627c4438e7b6f0644d70e30eb` (Phase 11 merge)
 - Phase 11 PR #18 is merged.
-- No open Phase 12 pull request existed at the start of this phase.
+- Phase 12 PR #19 was merged to `main` at merge commit `3e52b1dfaa14675f7e4c5475498207ccfeda8a52`.
 - The Phase 6 PR #13 was merged into `feat/lfms-core-api-architecture`, not `main`. The current mainline therefore lacked the facility/reservation API controllers, routes, frontend pages, and tests. The old feature branch had diverged substantially, so it was not merged wholesale. The required Phase 6 files were selectively restored onto the current mainline in this phase.
 - Local workstation working-tree state cannot be observed through the repository connector. Remote branch and PR state were inspected.
 
@@ -66,7 +66,7 @@
 
 The tests above are automated CI tests, not browser-based or live authenticated end-to-end tests. Mocked HTTP tests do not prove live JWT, RLS, Storage, or notification-trigger behavior.
 
-The live Supabase project currently has **one assigned Admin user and zero assigned `staff_sa` users** in the inspected role assignment table. This prevents a real Staff/SA login workflow from being smoke-tested with the currently assigned accounts. Do not infer that Staff/SA access is operational merely because mocked authorization tests pass.
+The live Supabase project was last inspected with **one assigned Admin user and zero assigned `staff_sa` users** in the role assignment table. This prevented a real Staff/SA login workflow from being smoke-tested at that time. Recheck role assignments before launch; do not infer that Staff/SA access is operational merely because mocked authorization tests pass.
 
 Required live smoke tests still include:
 - Admin and Staff/SA login, token refresh, logout, expired/invalid token rejection.

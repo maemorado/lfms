@@ -1,7 +1,8 @@
-# Environment files
+# Environment files (keep real credentials out of Git)
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Dependencies
 **/node_modules/

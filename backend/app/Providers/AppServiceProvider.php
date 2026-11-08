@@ -9,6 +9,9 @@ use App\Policies\ReservationPolicy;
 
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('api', static fn (Request $request): Limit =>
+            Limit::perMinute(120)->by($request->ip() ?: 'unknown')
+        );
+
         Gate::policy(Facility::class, FacilityPolicy::class);
         Gate::policy(Reservation::class, ReservationPolicy::class);
 

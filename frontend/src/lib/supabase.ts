@@ -1,13 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-// These are public client settings, not service-role credentials.
-// Environment variables can override the defaults for local/staging deployments.
-const url =
-  import.meta.env.VITE_SUPABASE_URL ??
-  "https://bwebicixgcnzyqoaccha.supabase.co";
+// Browser configuration is intentionally environment-only. A missing value
+// must not silently connect a deployment to another Supabase project.
+const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 
-const publishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  "sb_publishable_Q1PpH2QbDD324hvUj8MUag_P6ZrC1eE";
-
-export const supabase = createClient(url, publishableKey);
+export const supabase = url && publishableKey
+  ? createClient(url, publishableKey)
+  : null;
