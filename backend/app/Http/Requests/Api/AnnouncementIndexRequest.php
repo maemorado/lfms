@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Http\\Requests\\Api;
+namespace App\Http\Requests\Api;
 
-use Illuminate\\Foundation\\Http\\FormRequest;
-use Illuminate\\Validation\\Rule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class AnnouncementIndexRequest extends FormRequest
 {
