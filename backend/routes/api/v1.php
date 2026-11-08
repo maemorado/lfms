@@ -1,12 +1,13 @@
 <?php
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BorrowingController;
-use App\Http\Controllers\Api\InventoryController;
-use App\Http\Controllers\Api\MaintenanceIncidentController;
-use App\Http\Controllers\Api\UserManagementController;
-use App\Http\Middleware\LoadLfmsAuthorizationContext;
-use App\Support\Api\ApiResponse;
-use Illuminate\Support\Facades\Route;
+use App\\Http\\Controllers\\Api\\AuthController;
+use App\\Http\\Controllers\\Api\\BorrowingController;
+use App\\Http\\Controllers\\Api\\InventoryController;
+use App\\Http\\Controllers\\Api\\MaintenanceIncidentController;
+use App\\Http\\Controllers\\Api\\NotificationAnnouncementController;
+use App\\Http\\Controllers\\Api\\UserManagementController;
+use App\\Http\\Middleware\\LoadLfmsAuthorizationContext;
+use App\\Support\\Api\\ApiResponse;
+use Illuminate\\Support\\Facades\\Route;
 Route::prefix('v1')->name('api.v1.')->group(function():void{
  Route::get('/health',fn()=>ApiResponse::success(['application'=>config('app.name'),'api_version'=>'v1'],'LFMS API v1 is running.'))->name('health');
  Route::middleware('supabase.auth')->group(function():void{
@@ -19,6 +20,26 @@ Route::prefix('v1')->name('api.v1.')->group(function():void{
    });
    Route::get('/profile',[UserManagementController::class,'profile'])->middleware('permission:profile.view_own')->name('profile.show');
    Route::patch('/profile',[UserManagementController::class,'updateProfile'])->middleware('permission:profile.update_own')->name('profile.update');
+   Route::prefix('notifications')->name('notifications.')->middleware('permission:notifications.view_own')->group(function():void{
+    Route::get('/',[NotificationAnnouncementController::class,'notifications'])->name('index');
+    Route::get('/unread-count',[NotificationAnnouncementController::class,'unreadCount'])->name('unread-count');
+    Route::post('/read-all',[NotificationAnnouncementController::class,'markAllRead'])->name('read-all');
+    Route::get('/{notificationId}',[NotificationAnnouncementController::class,'notification'])->whereUuid('notificationId')->name('show');
+    Route::patch('/{notificationId}/read',[NotificationAnnouncementController::class,'markRead'])->whereUuid('notificationId')->name('read');
+   });
+   Route::post('/notifications/dispatch-overdue',[NotificationAnnouncementController::class,'dispatchOverdue'])->middleware('permission:notifications.manage')->name('notifications.dispatch-overdue');
+   Route::prefix('announcements')->name('announcements.')->middleware('permission:notifications.view_own')->group(function():void{
+    Route::get('/',[NotificationAnnouncementController::class,'announcements'])->name('index');
+    Route::get('/{announcementId}/history',[NotificationAnnouncementController::class,'history'])->whereUuid('announcementId')->middleware(['permission:notifications.manage','permission:audit.view'])->name('history');
+    Route::get('/{announcementId}',[NotificationAnnouncementController::class,'announcement'])->whereUuid('announcementId')->name('show');
+    Route::middleware('permission:notifications.manage')->group(function():void{
+     Route::post('/',[NotificationAnnouncementController::class,'createAnnouncement'])->name('store');
+     Route::patch('/{announcementId}',[NotificationAnnouncementController::class,'updateAnnouncement'])->whereUuid('announcementId')->name('update');
+     Route::post('/{announcementId}/publish',[NotificationAnnouncementController::class,'publish'])->whereUuid('announcementId')->name('publish');
+     Route::post('/{announcementId}/unpublish',[NotificationAnnouncementController::class,'unpublish'])->whereUuid('announcementId')->name('unpublish');
+     Route::post('/{announcementId}/archive',[NotificationAnnouncementController::class,'archive'])->whereUuid('announcementId')->name('archive');
+    });
+   });
    Route::prefix('inventory')->name('inventory.')->middleware('permission:inventory.view')->group(function():void{
     Route::get('/',[InventoryController::class,'index'])->name('index');Route::get('/categories',[InventoryController::class,'categories'])->name('categories.index');Route::get('/locations',[InventoryController::class,'locations'])->name('locations.index');
     Route::middleware('permission:inventory.manage')->group(function():void{Route::post('/categories',[InventoryController::class,'storeCategory'])->name('categories.store');Route::patch('/categories/{categoryId}',[InventoryController::class,'updateCategory'])->whereUuid('categoryId')->name('categories.update');Route::delete('/categories/{categoryId}',[InventoryController::class,'deleteCategory'])->whereUuid('categoryId')->name('categories.destroy');Route::post('/',[InventoryController::class,'store'])->name('store');});
