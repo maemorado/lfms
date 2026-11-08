@@ -58,7 +58,7 @@ final class DashboardReportingApiTest extends TestCase
         });
     }
 
-    private function query(ClientRequest $request): array
+    private function parseQuery(ClientRequest $request): array
     {
         parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
         return $query;
@@ -87,15 +87,15 @@ final class DashboardReportingApiTest extends TestCase
         $expected = '(created_at.gte.'.$from.',created_at.lte.'.$to.')';
         Http::assertSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/reservations')
-            && ($this->query($request)['and'] ?? null) === $expected
+            && ($this->parseQuery($request)['and'] ?? null) === $expected
         );
         Http::assertSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/activity_logs')
-            && ($this->query($request)['and'] ?? null) === $expected
+            && ($this->parseQuery($request)['and'] ?? null) === $expected
         );
         Http::assertSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/audit_logs')
-            && ($this->query($request)['and'] ?? null) === $expected
+            && ($this->parseQuery($request)['and'] ?? null) === $expected
         );
     }
 
@@ -105,8 +105,8 @@ final class DashboardReportingApiTest extends TestCase
 
         Http::assertSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/announcements')
-            && str_contains((string) ($this->query($request)['or'] ?? ''), 'expires_at.is.null')
-            && str_contains((string) ($this->query($request)['or'] ?? ''), 'expires_at.gt.')
+            && str_contains((string) ($this->parseQuery($request)['or'] ?? ''), 'expires_at.is.null')
+            && str_contains((string) ($this->parseQuery($request)['or'] ?? ''), 'expires_at.gt.')
         );
     }
 }
