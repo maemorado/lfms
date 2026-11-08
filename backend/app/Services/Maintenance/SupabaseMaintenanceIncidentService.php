@@ -100,6 +100,34 @@ final class SupabaseMaintenanceIncidentService
         return ['facilities' => $facilities, 'assets' => $assets];
     }
 
+
+    public function blockedEquipmentAssetIds(string $token): array
+    {
+        $incidentRows = $this->request($token, 'GET', 'incident_reports', [
+            'select' => 'asset_id',
+            'asset_id' => 'not.is.null',
+            'incident_type' => 'in.(damage,missing)',
+            'status' => 'in.(open,under_review)',
+            'limit' => '1000',
+        ])['data'];
+
+        $maintenanceRows = $this->request($token, 'GET', 'maintenance_requests', [
+            'select' => 'asset_id',
+            'asset_id' => 'not.is.null',
+            'status' => 'in.(approved,in_progress,on_hold)',
+            'limit' => '1000',
+        ])['data'];
+
+        $ids = [];
+        foreach ([$incidentRows, $maintenanceRows] as $rows) {
+            foreach ($rows as $row) {
+                if (is_string($row['asset_id'] ?? null)) $ids[$row['asset_id']] = true;
+            }
+        }
+
+        return array_keys($ids);
+    }
+
     public function maintenanceRequests(string $token, array $options): array
     {
         $page = $options['page'];
