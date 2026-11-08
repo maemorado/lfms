@@ -61,7 +61,7 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: ":memory:"
           CACHE_STORE: array
-          LOG_CHANNEL: null
+          LOG_CHANNEL: "null"
         run: vendor/bin/phpunit
       - name: Verify production configuration and route caching
         working-directory: backend
