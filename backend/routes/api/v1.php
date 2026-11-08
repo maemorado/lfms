@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardReportingController;
 use App\Http\Controllers\Api\BorrowingController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MaintenanceIncidentController;
