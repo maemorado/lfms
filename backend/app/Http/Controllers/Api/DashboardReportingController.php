@@ -94,7 +94,7 @@ final class DashboardReportingController extends Controller
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        $options = array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options);
+        $options = $this->normalizeDateBounds(array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options));
         return ApiResponse::success($this->service->audit($this->token($request), $options), 'Row-level audit history retrieved successfully.');
     }
 }
