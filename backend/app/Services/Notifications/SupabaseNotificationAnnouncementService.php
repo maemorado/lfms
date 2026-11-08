@@ -228,6 +228,16 @@ final class SupabaseNotificationAnnouncementService
     {
         $this->uuid($id);
         if (!in_array($state,['draft','published','archived'],true)) throw new NotificationAnnouncementException('Unsupported announcement state.',422);
+        $current=$this->announcement($token,$id,true);
+        $allowed=match($current['status']??null){
+            'draft'=>['published','archived'],
+            'published'=>['draft','archived'],
+            default=>[],
+        };
+        if (!in_array($state,$allowed,true)) throw new NotificationAnnouncementException('That announcement state transition is not allowed.',409);
+        if ($state==='published' && is_string($current['expires_at']??null) && strtotime($current['expires_at'])<=time()) {
+            throw new NotificationAnnouncementException('An expired announcement cannot be published. Clear or update its expiration date first.',422);
+        }
         $payload=['status'=>$state];
         if ($state==='published') $payload['published_at']=now()->toIso8601String();
         if ($state==='draft') $payload['published_at']=null;
