@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Facility;
+use App\Models\Reservation;
+use App\Policies\FacilityPolicy;
+use App\Policies\ReservationPolicy;
+
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
