@@ -184,6 +184,22 @@ Do not run `supabase db reset --remote`, `supabase db push`, `migrate:fresh`, or
 - [ ] Real Admin and Staff/SA acceptance flows completed.
 - [ ] Monitoring and incident response owner assigned.
 
+## Phase 13 CI verification
+
+Latest GitHub Actions runs for this branch passed:
+
+- Laravel feature tests: **62 tests, 187 assertions passed**.
+- PostgreSQL reservation concurrency suite: **4 tests, 10 assertions passed** (from the Phase 12 regression workflow).
+- Composer platform requirements check: passed.
+- Composer security audit: no vulnerability advisories found.
+- Laravel production config, route, and event caches: passed; route list generated successfully.
+- Frontend ESLint and TypeScript/Vite production build: passed.
+- Production-only npm audit: **0 vulnerabilities**.
+- Full frontend development dependency tree: **12 findings (2 low, 10 moderate)**; no forced/breaking dependency upgrade was applied.
+- Non-blocking warnings remain: one React Fast Refresh lint warning, Vite chunk-size warning, and GitHub Actions Node 20 deprecation notices.
+
+These are CI checks with placeholder environment values. They do not verify the actual hosting provider, live Auth redirect configuration, production database connectivity, Storage upload/download, backups, or live role-based acceptance flows.
+
 ## Current manual requirements
 
 No hosting provider, production domain, Supabase Auth URL configuration, plan tier, backup schedule, or verified restore point was available through the connected repository/project tools. Those items remain unverified and must be completed in the Supabase dashboard and selected hosting provider before launch.
