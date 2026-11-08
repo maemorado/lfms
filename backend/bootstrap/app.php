@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\FacilityReservationException;
 use App\Exceptions\UserManagementException;
 use App\Http\Middleware\AuthenticateSupabaseUser;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
@@ -17,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -58,6 +58,19 @@ return Application::configure(basePath: dirname(__DIR__))
             return $isApi($request)
                 ? ApiResponse::error('The requested resource was not found.', 404, 'not_found')
                 : null;
+        });
+
+        $exceptions->render(function (FacilityReservationException $exception, Request $request) use ($isApi) {
+            if (!$isApi($request)) return null;
+            $status = $exception->httpStatus;
+            $code = match ($status) {
+                403 => 'forbidden',
+                404 => 'not_found',
+                409 => 'reservation_conflict',
+                422 => 'validation_error',
+                default => 'facility_reservation_error',
+            };
+            return ApiResponse::error($exception->getMessage(), $status, $code);
         });
 
         $exceptions->render(function (UserManagementException $exception, Request $request) use ($isApi) {

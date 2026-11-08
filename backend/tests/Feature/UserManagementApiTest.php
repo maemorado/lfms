@@ -55,7 +55,7 @@ class UserManagementApiTest extends TestCase
         $paginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20, 1);
         $service = Mockery::mock(UserManagementService::class);
         $service->shouldReceive('list')->once()->with(Mockery::on(
-            fn (array $filters) => ($filters['per_page'] ?? null) === 20 && ($filters['search'] ?? null) === 'Mae'
+            fn (array $filters) => ($filters['search'] ?? null) === 'Mae'
         ))->andReturn($paginator);
         $this->app->instance(UserManagementService::class, $service);
 

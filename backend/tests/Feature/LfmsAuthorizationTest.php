@@ -74,6 +74,40 @@ class LfmsAuthorizationTest extends TestCase
             ->assertJsonMissingPath('data.permissions.2');
     }
 
+    public function test_versioned_access_route_returns_profile_roles_and_permissions(): void
+    {
+        Http::fake([
+            'https://example.supabase.co/auth/v1/user' => Http::response([
+                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
+                'email' => 'admin@example.test',
+            ], 200),
+            'https://example.supabase.co/rest/v1/profiles*' => Http::response([[
+                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
+                'full_name' => 'LFMS Administrator',
+                'email' => 'admin@example.test',
+                'employee_id' => null,
+                'status' => 'active',
+            ]], 200),
+            'https://example.supabase.co/rest/v1/user_roles*' => Http::response([[
+                'role_id' => 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1',
+                'roles' => ['name' => 'admin'],
+            ]], 200),
+            'https://example.supabase.co/rest/v1/role_permissions*' => Http::response([
+                ['permissions' => ['name' => 'accounts.view']],
+                ['permissions' => ['name' => 'accounts.manage']],
+            ], 200),
+        ]);
+
+        $this->withToken('verified-token')
+            ->getJson('/api/v1/auth/access')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.profile.email', 'admin@example.test')
+            ->assertJsonPath('data.profile.status', 'active')
+            ->assertJsonPath('data.roles.0', 'admin')
+            ->assertJsonPath('data.permissions.0', 'accounts.view');
+    }
+
     public function test_authorization_upstream_failure_fails_closed_with_503(): void
     {
         Http::fake([

@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Facility;
+use App\Models\Reservation;
+use App\Policies\FacilityPolicy;
+use App\Policies\ReservationPolicy;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -12,6 +16,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(Facility::class, FacilityPolicy::class);
+        Gate::policy(Reservation::class, ReservationPolicy::class);
+
         Gate::define('permission', static function (GenericUser $user, string $permission): bool {
             $granted = $user->permissions;
             return is_array($granted) && in_array($permission, $granted, true);

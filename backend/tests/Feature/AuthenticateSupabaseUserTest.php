@@ -52,6 +52,24 @@ class AuthenticateSupabaseUserTest extends TestCase
         );
     }
 
+    public function test_versioned_identity_route_returns_the_envelope_the_frontend_expects(): void
+    {
+        Http::fake([
+            'https://example.supabase.co/auth/v1/user' => Http::response([
+                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
+                'email' => 'admin@example.test',
+            ], 200),
+        ]);
+
+        $this->withToken('valid-test-token')
+            ->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Authenticated identity retrieved successfully.')
+            ->assertJsonPath('data.user.id', '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1')
+            ->assertJsonPath('data.user.email', 'admin@example.test');
+    }
+
     public function test_identity_route_rejects_an_invalid_or_expired_token(): void
     {
         Http::fake([
