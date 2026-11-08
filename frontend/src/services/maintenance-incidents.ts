@@ -43,12 +43,13 @@ export async function listMaintenanceEvidence(id:string){
   if(!supabase)throw new Error("Supabase Storage is not configured.");
   const {data,error}=await supabase.storage.from("lfms-evidence").list(`maintenance/${id}`,{limit:100,sortBy:{column:"created_at",order:"desc"}});
   if(error)throw error;
-  return data.map(x=>({name:x.name,path:`maintenance/${id}/${x.name}`}));
+  return (data??[]).map(x=>({name:x.name,path:`maintenance/${id}/${x.name}`}));
 }
 export async function createEvidenceUrl(path:string){
   if(!supabase)throw new Error("Supabase Storage is not configured.");
   const {data,error}=await supabase.storage.from("lfms-evidence").createSignedUrl(path,60);
   if(error)throw error;
+  if(!data?.signedUrl)throw new Error("The evidence link could not be created.");
   return data.signedUrl;
 }
 export function maintenanceIncidentError(error:unknown){
