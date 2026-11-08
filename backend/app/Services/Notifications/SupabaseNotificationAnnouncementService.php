@@ -6,7 +6,7 @@ use App\Exceptions\NotificationAnnouncementException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
-final class SupabaseNotificationAnnouncementService
+class SupabaseNotificationAnnouncementService
 {
     private function client(string $token)
     {
