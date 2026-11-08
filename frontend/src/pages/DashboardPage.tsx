@@ -24,7 +24,10 @@ export default function DashboardPage() {
   const { identity, user, roles, can, signOut } = useAuth();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
-  const [error, setError] = useState<string | null>(null);\n  const [dashboard, setDashboard] = useState<{ metrics?: Record<string, Record<string, number>> } | null>(null);\n  const [dashboardLoading, setDashboardLoading] = useState(true);\n  useEffect(() => { let active = true; api.get("/v1/dashboard").then((response) => { if (active) setDashboard(response.data?.data ?? null); }).catch(() => { if (active) setError("Dashboard metrics are temporarily unavailable."); }).finally(() => { if (active) setDashboardLoading(false); }); return () => { active = false; }; }, []);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<{ metrics?: Record<string, Record<string, number>> } | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  useEffect(() => { let active = true; api.get("/v1/dashboard").then((response) => { if (active) setDashboard(response.data?.data ?? null); }).catch(() => { if (active) setError("Dashboard metrics are temporarily unavailable."); }).finally(() => { if (active) setDashboardLoading(false); }); return () => { active = false; }; }, []);
   const modules = (roles.includes("admin") ? adminModules : staffModules).filter(([, permission]) => permission === null || can(permission));
   const handleSignOut = async () => {
     setSigningOut(true); setError(null);
