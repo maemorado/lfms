@@ -146,7 +146,7 @@ final class DashboardReportingService
         $published = $this->page($token, 'announcements', [
             'select' => 'id,title,content,category,published_at,expires_at',
             'status' => 'eq.published', 'published_at' => 'lte.'.$now,
-            'or' => '(expires_at.is.null,expires_at.gt.'.$now)', 'order' => 'published_at.desc',
+            'or' => '(expires_at.is.null,expires_at.gt.'.$now.')', 'order' => 'published_at.desc',
         ], 1, 5);
         $reservationScope = $admin ? [] : ['requester_id' => 'eq.'.$userId];
         $current = $this->page($token, 'reservations', [
