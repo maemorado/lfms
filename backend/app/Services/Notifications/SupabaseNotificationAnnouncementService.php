@@ -104,7 +104,7 @@ final class SupabaseNotificationAnnouncementService
     {
         $this->uuid($id);
         $rows=$this->request($token,'PATCH','notifications',[
-            'id'=>'eq.'.$id,'user_id'=>'eq.'.$userId,
+            'id'=>'eq.'.$id,'user_id'=>'eq.'.$userId,'read_at'=>'is.null',
         ],['read_at'=>now()->toIso8601String()])['data'];
         if (is_array($rows) && $rows !== []) return $rows[0];
         return $this->notification($token,$userId,$id);
