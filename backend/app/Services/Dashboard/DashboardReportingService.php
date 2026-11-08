@@ -148,9 +148,26 @@ final class DashboardReportingService
             'status' => 'eq.published', 'published_at' => 'lte.'.$now,
             'or' => '(expires_at.is.null,expires_at.gt.'.$now)', 'order' => 'published_at.desc',
         ], 1, 5);
+        $reservationScope = $admin ? [] : ['requester_id' => 'eq.'.$userId];
+        $current = $this->page($token, 'reservations', [
+            'select' => 'id,purpose,start_at,end_at,status,facilities(id,name,code)',
+            'status' => 'eq.approved', 'start_at' => 'lte.'.$now, 'end_at' => 'gte.'.$now,
+            'order' => 'start_at.asc',
+        ] + $reservationScope, 1, 5);
+        $upcoming = $this->page($token, 'reservations', [
+            'select' => 'id,purpose,start_at,end_at,status,facilities(id,name,code)',
+            'status' => 'in.(pending,approved)', 'start_at' => 'gte.'.$now,
+            'order' => 'start_at.asc',
+        ] + $reservationScope, 1, 5);
+        $recentNotifications = $this->page($token, 'notifications', [
+            'select' => 'id,title,message,type,read_at,created_at',
+            'user_id' => 'eq.'.$userId, 'order' => 'created_at.desc',
+        ], 1, 5);
 
         return ['role' => $admin ? 'admin' : 'staff_sa', 'metrics' => $metrics,
-            'recent_activity' => $activity['data'], 'announcements' => $published['data']];
+            'recent_activity' => $activity['data'], 'announcements' => $published['data'],
+            'current_reservations' => $current['data'], 'upcoming_reservations' => $upcoming['data'],
+            'recent_notifications' => $recentNotifications['data']];
     }
 
     public function report(string $token, array $options): array
