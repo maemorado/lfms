@@ -21,9 +21,8 @@ const badge=(status:string)=>"inline-flex rounded-full px-2.5 py-1 text-xs font-
 const emptyPage:PageMeta={current_page:1,per_page:20,total:0,last_page:1};
 
 export default function MaintenanceIncidentPage(){
-  const {can,profile}=useAuth();
+  const {can}=useAuth();
   const maintenanceAdmin=can("maintenance.manage");
-  const incidentAdmin=can("incidents.manage");
   const [tab,setTab]=useState<Tab>("maintenance");
   const [targets,setTargets]=useState<Targets>({facilities:[],assets:[]});
   const [maintenance,setMaintenance]=useState<MaintenanceRequest[]>([]);
