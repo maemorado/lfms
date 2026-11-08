@@ -29,7 +29,8 @@ final class PostgresReservationConstraintTest extends TestCase
         $host = $config['host'] ?? null;
         $url = $config['url'] ?? null;
         if (
-            $connection->getDatabaseName() !== 'lfms_test'
+            getenv('LFMS_ALLOW_DESTRUCTIVE_TESTS') !== 'true'
+            || $connection->getDatabaseName() !== 'lfms_test'
             || !in_array($host, ['127.0.0.1', 'localhost', '::1'], true)
             || (is_string($url) && trim($url) !== '')
         ) {
