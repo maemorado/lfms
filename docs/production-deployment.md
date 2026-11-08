@@ -64,13 +64,11 @@ Run from `backend/` during a deployment build/release:
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 composer check-platform-reqs --no-dev
 php artisan about
-php artisan config:cache
-php artisan route:cache
-php artisan event:cache
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan event:cache
+php artisan view:cache
 ```
 
 The Phase 13 CI workflow runs production-mode cache and route checks. Do not run database migrations as part of deployment until the migration-history gap documented below has been reconciled and a reviewed migration plan approved.
