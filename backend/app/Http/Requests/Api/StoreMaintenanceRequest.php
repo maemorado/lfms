@@ -11,8 +11,8 @@ final class StoreMaintenanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'facility_id' => ['nullable', 'uuid', 'required_without:asset_id', 'prohibited_with:asset_id'],
-            'asset_id' => ['nullable', 'uuid', 'required_without:facility_id', 'prohibited_with:facility_id'],
+            'facility_id' => ['nullable', 'uuid', 'required_without:asset_id', 'prohibits:asset_id'],
+            'asset_id' => ['nullable', 'uuid', 'required_without:facility_id', 'prohibits:facility_id'],
             'description' => ['required', 'string', 'min:5', 'max:5000'],
             'priority' => ['sometimes', 'in:low,medium,high,critical'],
         ];
