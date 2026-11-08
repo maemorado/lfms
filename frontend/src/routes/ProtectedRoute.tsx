@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 import { AuthLoadingScreen, AuthProblemScreen } from "@/routes/AuthStatusScreen";
 
 function UnassignedAccess({ onSignOut }: { onSignOut: () => void }) {
@@ -22,5 +23,5 @@ export function ProtectedRoute() {
     return <AuthProblemScreen title="We couldn't verify your LFMS access" description={identityError ?? "Authorization data could not be verified. Please retry."} onRetry={() => void retry()} retrying={retrying} />;
   }
   if (accessStatus === "unassigned") return <UnassignedAccess onSignOut={() => void signOut()} />;
-  return <Outlet />;
+  return <><NotificationBell /><Outlet /></>;
 }

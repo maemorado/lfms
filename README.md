@@ -7,6 +7,7 @@ LFMS is a monorepo for a Laravel REST API backend and a React + TypeScript front
 - `frontend/` — React, TypeScript, Vite, Tailwind CSS, shadcn/ui configuration, React Router, Axios and PWA tooling.
 - `backend/` — Laravel 13 API foundation and PostgreSQL configuration.
 - `docs/setup/` — environment and Supabase setup notes.
+- `docs/phase-10-notifications-announcements.md` — Phase 10 notification events, API behavior, security, and known limitations.
 
 ## Prerequisites
 
