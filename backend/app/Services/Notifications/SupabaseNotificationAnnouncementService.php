@@ -95,7 +95,7 @@ final class SupabaseNotificationAnnouncementService
         $this->uuid($id);
         $rows=$this->request($token,'GET','notifications',[
             'select'=>'id,user_id,title,message,type,read_at,created_at,event_key,related_record_type,related_record_id,metadata',
-            'id'=>'eq.'.$id,'user_id'=>'eq.'.$userId,'read_at'=>'is.null','limit'=>'1',
+            'id'=>'eq.'.$id,'user_id'=>'eq.'.$userId,'limit'=>'1',
         ])['data'];
         return $this->one($rows,'Notification not found.');
     }
