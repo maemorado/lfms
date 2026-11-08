@@ -143,7 +143,7 @@ final class SupabaseInventoryService
         if(!$response->successful()){
             $body=strtolower($response->body());$status=$response->status();
             $message=(str_contains($body,'insufficient')||str_contains($body,'negative'))?'There is not enough stock at this location for that withdrawal.':($status===403?'Your account cannot manage inventory stock.':'The stock movement could not be completed.');
-            throw new InventoryException($message,in_array($status,[401,403,404,409,422],true)?$status:502);
+            throw new InventoryException($message,in_array($status,[401,403,404,409,422],true)?$status:($status===400?422:502));
         }
         return ['movement'=>$response->json()[0]??$response->json(),'item'=>$this->findItem($token,$itemId)];
     }
