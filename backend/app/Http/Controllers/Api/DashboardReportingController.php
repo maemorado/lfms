@@ -61,4 +61,20 @@ final class DashboardReportingController extends Controller
         if (!$admin) $options['user_id'] = null;
         return ApiResponse::success($this->service->activity($this->token($request), $this->actor($request), $admin, $options), 'Activity history retrieved successfully.');
     }
+
+    public function audit(Request $request): JsonResponse
+    {
+        abort_unless($this->isAdmin($request), 403, 'Administrative audit access is required.');
+        $options = $request->validate([
+            'user_id' => ['nullable', 'uuid'],
+            'module' => ['nullable', 'string', 'max:80'],
+            'action' => ['nullable', Rule::in(['INSERT', 'UPDATE', 'DELETE'])],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+        $options = array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options);
+        return ApiResponse::success($this->service->audit($this->token($request), $options), 'Row-level audit history retrieved successfully.');
+    }
 }
