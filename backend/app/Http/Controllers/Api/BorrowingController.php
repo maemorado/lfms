@@ -8,6 +8,7 @@ use App\Http\Requests\Api\ReviewBorrowRequest;
 use App\Http\Requests\Api\StoreBorrowRequest;
 use App\Services\Borrowing\SupabaseBorrowingService;
 use App\Services\Inventory\SupabaseInventoryService;
+use App\Services\Maintenance\SupabaseMaintenanceIncidentService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
