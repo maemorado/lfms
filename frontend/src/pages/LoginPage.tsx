@@ -127,7 +127,7 @@ export default function LoginPage() {
               <Building2 aria-hidden="true" className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-bold tracking-[0.16em] text-slate-950">LFMS</p>
+              <p className="font-bold tracking-[0.16em] text-slate-950 dark:text-foreground">LFMS</p>
               <p className="text-xs text-slate-500">Laboratory & Facility Management</p>
             </div>
           </div>
