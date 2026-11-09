@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Building2, Pencil, Plus, RefreshCw, Search, Warehouse } from "lucide-react";
-import import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { createFacility, getApiError, getFacilityLookups, listFacilities, updateFacility, type Facility, type FacilityLookups, type Pagination } from "@/services/facility-reservation";
 
 const emptyForm = { building_id: "", facility_type_id: "", name: "", code: "", capacity: 1, description: "", status: "available" as Facility["status"] };
