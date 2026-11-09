@@ -13,7 +13,7 @@ const items = [
   { label: "Maintenance & Incidents", path: "/maintenance-incidents", icon: Wrench, permissions: ["maintenance.create", "maintenance.manage", "incidents.create", "incidents.manage"] },
   { label: "User Management", path: "/users", icon: Users, permissions: ["accounts.view"] },
   { label: "Reports & Analytics", path: "/reports", icon: FileBarChart, permissions: ["reports.view"] },
-  { label: "Announcements", path: "/announcements" },
+  { label: "Announcements", path: "/announcements", icon: Megaphone },
   { label: "Notifications", path: "/notifications", icon: Bell, permissions: ["notifications.view_own"] },
   { label: "Activity History", path: "/activity", icon: Activity },
   { label: "Audit History", path: "/audit", icon: ShieldCheck, permissions: ["audit.view"] },
