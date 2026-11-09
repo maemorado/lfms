@@ -269,10 +269,6 @@
   textarea {
     max-width: 100%;
   }
-
-  table {
-    min-width: 36rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
