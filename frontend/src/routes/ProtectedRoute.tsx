@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import { AuthLoadingScreen, AuthProblemScreen } from "@/routes/AuthStatusScreen";
