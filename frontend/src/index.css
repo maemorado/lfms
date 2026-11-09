@@ -314,3 +314,23 @@
 .dark .text-slate-400 {
   color: hsl(var(--muted-foreground)) !important;
 }
+
+
+/* Transitional palette mapping for authentication and invitation screens. */
+.dark .bg-slate-50,
+.dark .bg-white {
+  background-color: hsl(var(--background)) !important;
+}
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: hsl(var(--foreground)) !important;
+}
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+.dark .border-slate-200,
+.dark .border-slate-300 {
+  border-color: hsl(var(--border)) !important;
+}
