@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState,type FormEvent} from "react";
-import {Link,useSearchParams} from "react-router-dom";
+import {useSearchParams} from "react-router-dom";
 import {RefreshCw,Package,Check,XCircle,AlertTriangle} from "lucide-react";
 import {useAuth} from "@/contexts/AuthContext";
 import {listLocations,type InventoryLocation} from "@/services/inventory";
