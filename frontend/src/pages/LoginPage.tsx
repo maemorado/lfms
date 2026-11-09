@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 
 type LoginDestination = {
   from?: {
@@ -87,8 +88,9 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden bg-slate-950 px-12 py-14 text-white lg:flex lg:flex-col lg:justify-between xl:px-20">
+    <main className="relative min-h-screen bg-slate-50 dark:bg-background lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+      <div className="absolute right-4 top-4 z-20 lg:right-8"><ThemeToggle /></div>
+      <section className="relative hidden min-h-screen overflow-hidden bg-slate-950 px-12 py-14 text-white dark:bg-card lg:flex lg:flex-col lg:justify-between xl:px-20">
         <div className="absolute -right-32 -top-24 h-96 w-96 rounded-full border border-teal-300/15" />
         <div className="absolute -bottom-48 -left-24 h-[34rem] w-[34rem] rounded-full border border-teal-300/10" />
         <div className="relative z-10 flex items-center gap-3">
@@ -118,7 +120,7 @@ export default function LoginPage() {
         <p className="relative z-10 text-xs text-slate-500">LFMS · Laboratory and Facility Management System</p>
       </section>
 
-      <section className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-8">
+      <section className="flex min-h-screen items-center justify-center px-5 py-16 sm:px-8">
         <div className="w-full max-w-md">
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-teal-300">
@@ -132,7 +134,7 @@ export default function LoginPage() {
 
           <div className="mb-8">
             <p className="text-sm font-semibold text-teal-700">Welcome back</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Sign in to LFMS</h2>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-foreground">Sign in to LFMS</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               Use the account provided by your system administrator to continue.
             </p>
@@ -160,7 +162,7 @@ export default function LoginPage() {
                   aria-invalid={Boolean(emailError)}
                   aria-describedby={emailError ? "email-error" : undefined}
                   placeholder="you@university.edu"
-                  className={`min-h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 ${emailError ? "border-red-400" : "border-slate-200"}`}
+                  className={`min-h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-950 dark:border-input dark:bg-card dark:text-foreground outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 ${emailError ? "border-red-400" : "border-slate-200"}`}
                 />
               </div>
               {emailError && <p id="email-error" className="mt-1.5 text-xs text-red-600">{emailError}</p>}
@@ -185,7 +187,7 @@ export default function LoginPage() {
                   aria-invalid={Boolean(passwordError)}
                   aria-describedby={passwordError ? "password-error" : undefined}
                   placeholder="Enter your password"
-                  className={`min-h-12 w-full rounded-xl border bg-white pl-10 pr-12 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 ${passwordError ? "border-red-400" : "border-slate-200"}`}
+                  className={`min-h-12 w-full rounded-xl border bg-white pl-10 pr-12 text-sm text-slate-950 dark:border-input dark:bg-card dark:text-foreground outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 ${passwordError ? "border-red-400" : "border-slate-200"}`}
                 />
                 <button
                   type="button"
