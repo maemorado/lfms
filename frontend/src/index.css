@@ -208,3 +208,130 @@
     color: hsl(var(--foreground));
   }
 }
+
+
+/* Dark-mode compatibility for semantic status utilities still used by legacy page states. */
+.dark .bg-emerald-50,
+.dark .bg-green-50 {
+  background-color: color-mix(in srgb, hsl(var(--success)) 18%, hsl(var(--card))) !important;
+}
+.dark .text-emerald-800,
+.dark .text-green-800 {
+  color: hsl(var(--success)) !important;
+}
+.dark .bg-amber-50,
+.dark .bg-yellow-50 {
+  background-color: color-mix(in srgb, hsl(var(--warning)) 18%, hsl(var(--card))) !important;
+}
+.dark .text-amber-800,
+.dark .text-yellow-800 {
+  color: hsl(var(--warning)) !important;
+}
+.dark .bg-rose-50,
+.dark .bg-red-50 {
+  background-color: color-mix(in srgb, hsl(var(--destructive)) 18%, hsl(var(--card))) !important;
+}
+.dark .text-rose-800,
+.dark .text-red-800 {
+  color: hsl(var(--destructive)) !important;
+}
+.dark .bg-blue-50,
+.dark .bg-sky-50 {
+  background-color: color-mix(in srgb, hsl(var(--info)) 18%, hsl(var(--card))) !important;
+}
+.dark .text-blue-800,
+.dark .text-sky-800 {
+  color: hsl(var(--info)) !important;
+}
+.dark .bg-teal-50 {
+  background-color: color-mix(in srgb, hsl(var(--info)) 18%, hsl(var(--card))) !important;
+}
+.dark .text-teal-700,
+.dark .text-teal-800 {
+  color: hsl(var(--info)) !important;
+}
+.dark .border-emerald-200,
+.dark .border-green-200 {
+  border-color: color-mix(in srgb, hsl(var(--success)) 45%, hsl(var(--border))) !important;
+}
+.dark .border-rose-200,
+.dark .border-red-200 {
+  border-color: color-mix(in srgb, hsl(var(--destructive)) 45%, hsl(var(--border))) !important;
+}
+.dark .border-amber-200 {
+  border-color: color-mix(in srgb, hsl(var(--warning)) 45%, hsl(var(--border))) !important;
+}
+
+/* Keep dense operational screens usable on narrow devices and respect reduced motion. */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Additional legacy status and navigation colors retained by operational screens. */
+.dark .text-emerald-700,
+.dark .text-green-700 {
+  color: hsl(var(--success)) !important;
+}
+.dark .text-rose-700,
+.dark .text-red-700 {
+  color: hsl(var(--destructive)) !important;
+}
+.dark .bg-emerald-700,
+.dark .bg-green-700 {
+  background-color: hsl(var(--success)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+.dark .bg-rose-700,
+.dark .bg-red-700 {
+  background-color: hsl(var(--destructive)) !important;
+  color: hsl(var(--destructive-foreground)) !important;
+}
+.dark .bg-teal-600 {
+  background-color: hsl(var(--primary)) !important;
+}
+.dark .bg-slate-300 {
+  background-color: hsl(var(--muted-foreground)) !important;
+}
+.dark .bg-slate-700 {
+  background-color: hsl(var(--secondary)) !important;
+}
+.dark .text-slate-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+
+/* Transitional palette mapping for authentication and invitation screens. */
+.dark .bg-slate-50 {
+  background-color: hsl(var(--background)) !important;
+}
+.dark .bg-white {
+  background-color: hsl(var(--card)) !important;
+}
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: hsl(var(--foreground)) !important;
+}
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+.dark .border-slate-200,
+.dark .border-slate-300 {
+  border-color: hsl(var(--border)) !important;
+}
