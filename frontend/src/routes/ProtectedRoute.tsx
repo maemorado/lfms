@@ -24,5 +24,5 @@ export function ProtectedRoute() {
     return <AuthProblemScreen title="We couldn't verify your LFMS access" description={identityError ?? "Authorization data could not be verified. Please retry."} onRetry={() => void retry()} retrying={retrying} />;
   }
   if (accessStatus === "unassigned") return <UnassignedAccess onSignOut={() => void signOut()} />;
-  return <AppShell><Outlet /></AppShell>;
+  return <AppShell />;
 }
