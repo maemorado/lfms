@@ -281,3 +281,36 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Additional legacy status and navigation colors retained by operational screens. */
+.dark .text-emerald-700,
+.dark .text-green-700 {
+  color: hsl(var(--success)) !important;
+}
+.dark .text-rose-700,
+.dark .text-red-700 {
+  color: hsl(var(--destructive)) !important;
+}
+.dark .bg-emerald-700,
+.dark .bg-green-700 {
+  background-color: hsl(var(--success)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+.dark .bg-rose-700,
+.dark .bg-red-700 {
+  background-color: hsl(var(--destructive)) !important;
+  color: hsl(var(--destructive-foreground)) !important;
+}
+.dark .bg-teal-600 {
+  background-color: hsl(var(--primary)) !important;
+}
+.dark .bg-slate-300 {
+  background-color: hsl(var(--muted-foreground)) !important;
+}
+.dark .bg-slate-700 {
+  background-color: hsl(var(--secondary)) !important;
+}
+.dark .text-slate-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
