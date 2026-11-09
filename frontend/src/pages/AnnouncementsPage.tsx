@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState,type FormEvent} from "react";
-import {Link,useSearchParams} from "react-router-dom";
+import {useSearchParams} from "react-router-dom";
 import {Archive,Edit3,Plus,RefreshCw,Send,Undo2} from "lucide-react";
 import {useAuth} from "@/contexts/AuthContext";
 import {createAnnouncement,getAnnouncement,getAnnouncementHistory,listAnnouncements,notificationError,setAnnouncementState,updateAnnouncement,type Announcement,type AnnouncementAudit,type PageMeta} from "@/services/notifications-announcements";
