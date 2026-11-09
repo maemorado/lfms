@@ -1,3 +1,4 @@
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'lfms-evidence',
@@ -14,31 +15,28 @@ to authenticated
 using (
   bucket_id = 'lfms-evidence'
   and (
-    (
-      (storage.foldername(name))[1] = 'maintenance'
-      and (
-        (select private.has_permission('maintenance.manage'))
-        or (
-          (select private.has_permission('maintenance.view'))
-          and exists (
-            select 1 from public.maintenance_requests mr
-            where mr.id::text = (storage.foldername(name))[2]
-              and mr.reported_by = (select auth.uid())
-          )
+    (storage.foldername(name))[1] = 'maintenance'
+    and (
+      (select private.has_permission('maintenance.manage'))
+      or (
+        (select private.has_permission('maintenance.view'))
+        and exists (
+          select 1 from public.maintenance_requests mr
+          where mr.id::text = (storage.foldername(name))[2]
+            and mr.reported_by = (select auth.uid())
         )
       )
     )
-    or (
-      (storage.foldername(name))[1] = 'incidents'
-      and (
-        (select private.has_permission('incidents.manage'))
-        or (
-          (select private.has_permission('incidents.view'))
-          and exists (
-            select 1 from public.incident_reports ir
-            where ir.id::text = (storage.foldername(name))[2]
-              and ir.reported_by = (select auth.uid())
-          )
+    or
+    (storage.foldername(name))[1] = 'incidents'
+    and (
+      (select private.has_permission('incidents.manage'))
+      or (
+        (select private.has_permission('incidents.view'))
+        and exists (
+          select 1 from public.incident_reports ir
+          where ir.id::text = (storage.foldername(name))[2]
+            and ir.reported_by = (select auth.uid())
         )
       )
     )
@@ -52,31 +50,28 @@ to authenticated
 with check (
   bucket_id = 'lfms-evidence'
   and (
-    (
-      (storage.foldername(name))[1] = 'maintenance'
-      and (
-        (select private.has_permission('maintenance.manage'))
-        or (
-          (select private.has_permission('maintenance.create'))
-          and exists (
-            select 1 from public.maintenance_requests mr
-            where mr.id::text = (storage.foldername(name))[2]
-              and mr.reported_by = (select auth.uid())
-          )
+    (storage.foldername(name))[1] = 'maintenance'
+    and (
+      (select private.has_permission('maintenance.manage'))
+      or (
+        (select private.has_permission('maintenance.create'))
+        and exists (
+          select 1 from public.maintenance_requests mr
+          where mr.id::text = (storage.foldername(name))[2]
+            and mr.reported_by = (select auth.uid())
         )
       )
     )
-    or (
-      (storage.foldername(name))[1] = 'incidents'
-      and (
-        (select private.has_permission('incidents.manage'))
-        or (
-          (select private.has_permission('incidents.create'))
-          and exists (
-            select 1 from public.incident_reports ir
-            where ir.id::text = (storage.foldername(name))[2]
-              and ir.reported_by = (select auth.uid())
-          )
+    or
+    (storage.foldername(name))[1] = 'incidents'
+    and (
+      (select private.has_permission('incidents.manage'))
+      or (
+        (select private.has_permission('incidents.create'))
+        and exists (
+          select 1 from public.incident_reports ir
+          where ir.id::text = (storage.foldername(name))[2]
+            and ir.reported_by = (select auth.uid())
         )
       )
     )

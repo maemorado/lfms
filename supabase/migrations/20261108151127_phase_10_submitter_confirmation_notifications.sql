@@ -1,6 +1,4 @@
--- Deliver a confirmation to the user who submitted a reservation, borrowing request,
--- maintenance request, or incident report. The same idempotency key is used as the
--- Admin-review notification, so an Admin who is also the submitter receives one notice.
+
 create or replace function private.notify_lfms_submitter_confirmation()
 returns trigger
 language plpgsql
