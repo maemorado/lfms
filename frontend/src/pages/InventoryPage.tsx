@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useState,type FormEvent } from "react";
-import import { Plus,Search,RefreshCw,History,Archive,Pencil,X } from "lucide-react";
+import { Plus,Search,RefreshCw,History,Archive,Pencil,X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { archiveInventoryItem,createAsset,createInventoryItem,createCategory as addCategory,deleteCategory,getInventoryItem,inventoryError,listAssets,listCategories,listInventory,listLocations,listMovements,recordMovement,updateAsset,updateCategory,updateInventoryItem,type EquipmentAsset,type InventoryCategory,type InventoryItem,type InventoryLocation,type InventoryMovement,type PageMeta } from "@/services/inventory";
 
