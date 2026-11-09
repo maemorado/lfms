@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Building2, LogOut, ShieldCheck, Users, Warehouse, CalendarDays, Package, Wrench, AlertTriangle, Bell, Megaphone, ClipboardList } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { ShieldCheck, Users, Warehouse, CalendarDays, Package, Wrench, AlertTriangle, Bell, Megaphone, ClipboardList } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 
@@ -29,18 +29,8 @@ export default function DashboardPage() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   useEffect(() => { let active = true; api.get("/v1/dashboard").then((response) => { if (active) setDashboard(response.data?.data ?? null); }).catch(() => { if (active) setError("Dashboard metrics are temporarily unavailable."); }).finally(() => { if (active) setDashboardLoading(false); }); return () => { active = false; }; }, []);
   const modules = (roles.includes("admin") ? adminModules : staffModules).filter(([, permission]) => permission === null || can(permission));
-  const handleSignOut = async () => {
-    setSigningOut(true); setError(null);
-    try { await signOut(); navigate("/login", { replace: true }); }
-    catch { setError("We couldn't sign you out. Check your connection and try again."); }
-    finally { setSigningOut(false); }
-  };
-  return <main className="min-h-screen bg-slate-50">
-    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-      <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-teal-300"><Building2 aria-hidden="true" className="h-5 w-5" /></div><div><p className="font-bold tracking-[0.14em] text-slate-950">LFMS</p><p className="text-xs text-slate-500">Laboratory & Facility Management</p></div></div>
-      <button type="button" onClick={() => void handleSignOut()} disabled={signingOut} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"><LogOut aria-hidden="true" className="h-4 w-4" />{signingOut ? "Signing out…" : "Sign out"}</button>
-    </div></header>
-    <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8"><div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+  return <div className="w-full">
+    <section className="w-full"><div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-800"><ShieldCheck aria-hidden="true" className="h-6 w-6" /></div>
       <p className="mt-6 text-sm font-semibold text-teal-700">Authorization verified</p><h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Welcome to your LFMS workspace.</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Your roles and permissions are loaded from the existing Supabase assignments. Protected API operations must also enforce these permissions server-side.</p>
