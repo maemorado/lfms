@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from "react";
-import {Link,useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import {CheckCheck,ExternalLink,RefreshCw} from "lucide-react";
 import {useAuth} from "@/contexts/AuthContext";
 import {dispatchOverdueNotifications,listNotifications,markAllNotificationsRead,markNotificationRead,notificationDestination,notificationError,type LfmsNotification,type PageMeta} from "@/services/notifications-announcements";
