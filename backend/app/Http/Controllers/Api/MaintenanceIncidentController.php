@@ -15,6 +15,7 @@ use App\Services\Maintenance\NeonMaintenanceIncidentService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 final class MaintenanceIncidentController extends Controller
 {
@@ -80,7 +81,37 @@ final class MaintenanceIncidentController extends Controller
 
     public function incidentAttachment(StoreIncidentAttachmentRequest $request, string $incidentId): JsonResponse
     {
-        $attachment = $this->service->addIncidentAttachment($incidentId, $request->validated());
-        return ApiResponse::success(['attachment' => $attachment], 'Incident evidence linked successfully.', 201);
+        $file = $request->file('file');
+        if (!$file instanceof UploadedFile) {
+            return ApiResponse::error('An evidence file is required.', 422, 'validation_error');
+        }
+
+        $actorId = (string) data_get($request->attributes->get('supabase_user'), 'id', '');
+        $attachment = $this->service->uploadIncidentAttachment($incidentId, $file, $actorId);
+
+        return ApiResponse::success(['attachment' => $attachment], 'Incident evidence uploaded successfully.', 201);
+    }
+
+    public function incidentAttachmentDownload(Request $request, string $incidentId, string $attachmentId): \\Illuminate\\Http\\Response
+    {
+        $actorId = (string) data_get($request->attributes->get('supabase_user'), 'id', '');
+        $file = $this->service->downloadIncidentAttachment($incidentId, $attachmentId, $actorId);
+        $fileName = preg_replace('/["\\\\\\r\\n]/', '_', (string) $file['file_name']) ?: 'evidence';
+
+        return response($file['body'], 200, [
+            'Content-Type' => $file['mime_type'],
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Content-Length' => (string) strlen($file['body']),
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function incidentAttachmentDelete(Request $request, string $incidentId, string $attachmentId): JsonResponse
+    {
+        $actorId = (string) data_get($request->attributes->get('supabase_user'), 'id', '');
+        $this->service->deleteIncidentAttachment($incidentId, $attachmentId, $actorId);
+
+        return ApiResponse::success(null, 'Incident evidence deleted successfully.');
     }
 }
