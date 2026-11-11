@@ -19,6 +19,17 @@ final class ProductionReadinessTest extends TestCase
             ->assertJsonPath('data.api_version', 'v1');
     }
 
+    public function test_database_readiness_fails_closed_without_a_postgresql_runtime_connection(): void
+    {
+        $this->getJson('/api/health/ready')
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'database_not_ready');
+
+        $this->getJson('/api/v1/health/ready')
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'database_not_ready');
+    }
+
     public function test_production_supabase_configuration_does_not_contain_project_fallbacks(): void
     {
         config([
