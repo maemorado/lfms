@@ -84,6 +84,22 @@ class AuthenticateSupabaseUserTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    public function test_identity_route_rejects_an_expired_access_token(): void
+    {
+        Http::fake([
+            'https://example.supabase.co/auth/v1/user' => Http::response([
+                'code' => 'bad_jwt',
+                'message' => 'JWT expired',
+            ], 401),
+        ]);
+
+        $this->withToken('expired-test-token')
+            ->getJson('/api/v1/auth/me')
+            ->assertUnauthorized()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 'unauthenticated');
+    }
+
     public function test_identity_route_returns_service_unavailable_when_auth_is_unavailable(): void
     {
         Http::fake([
