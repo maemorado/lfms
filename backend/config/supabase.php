@@ -9,4 +9,6 @@ return [
     'secret_key' => env('SUPABASE_SECRET_KEY'),
     'frontend_url' => env('FRONTEND_URL'),
     'auth_user_timeout' => (int) env('SUPABASE_AUTH_USER_TIMEOUT', 10),
+    'storage_bucket' => env('SUPABASE_STORAGE_BUCKET', 'lfms-evidence'),
+    'storage_timeout' => (int) env('SUPABASE_STORAGE_TIMEOUT', 30),
 ];
