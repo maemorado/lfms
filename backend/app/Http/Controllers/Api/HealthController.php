@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Support\Api\ApiResponse;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Throwable;
