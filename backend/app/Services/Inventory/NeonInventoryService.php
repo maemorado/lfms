@@ -397,6 +397,15 @@ final class NeonInventoryService
             ->map(fn (object $asset): array => (array) $asset)
             ->all();
 
+        $item['quantity_on_hand'] = array_sum(array_map(
+            fn (array $stock): float => (float) ($stock['quantity'] ?? 0),
+            $item['inventory_stock'],
+        ));
+        $item['available_assets'] = count(array_filter(
+            $item['equipment_assets'],
+            fn (array $asset): bool => ($asset['status'] ?? null) === 'available',
+        ));
+
         return $item;
     }
 
