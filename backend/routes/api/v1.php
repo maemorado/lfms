@@ -13,6 +13,7 @@ use App\Http\Middleware\LoadLfmsAuthorizationContext;
 use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function():void{
  Route::get('/health',[HealthController::class,'showVersioned'])->name('health');
+ Route::get('/health/ready',[HealthController::class,'readinessVersioned'])->name('health.ready');
  Route::middleware('supabase.auth')->group(function():void{
   Route::get('/auth/me',[AuthController::class,'me'])->name('auth.me');
   Route::middleware(LoadLfmsAuthorizationContext::class)->group(function():void{
