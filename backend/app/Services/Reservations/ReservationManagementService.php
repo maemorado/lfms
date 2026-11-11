@@ -2,7 +2,7 @@
 
 namespace App\Services\Reservations;
 
-use App\Exceptions\FacilityReservationException;
+use App\Services\Security\NeonIdentityContext;use App\Exceptions\FacilityReservationException;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 
 class ReservationManagementService
 {
+    public function __construct(private readonly NeonIdentityContext $identity) {}
     public function list(array $filters, string $actorId, bool $isAdmin): LengthAwarePaginator
     {
         $query = $this->query();
@@ -197,11 +198,7 @@ class ReservationManagementService
 
     private function setActor(string $actorId): void
     {
-        // This ID comes from the Supabase Auth-verified request context.
-        DB::statement("select set_config('app.current_user_id', ?, true)", [$actorId]);
-        // The reservation notification trigger uses auth.uid(); mirror the verified subject
-        // for this transaction-local privileged PostgreSQL operation.
-        DB::statement("select set_config('request.jwt.claim.sub', ?, true)", [$actorId]);
+        $this->identity->set($actorId);
     }
 
     private function activity(string $actorId, string $recordId, string $action, array $metadata): void
