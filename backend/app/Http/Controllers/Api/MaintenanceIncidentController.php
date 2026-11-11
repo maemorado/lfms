@@ -96,7 +96,7 @@ final class MaintenanceIncidentController extends Controller
     {
         $actorId = (string) data_get($request->attributes->get('supabase_user'), 'id', '');
         $file = $this->service->downloadIncidentAttachment($incidentId, $attachmentId, $actorId);
-        $fileName = str_replace(["\\r", "\\n", '"', '\\\\'], '_', (string) $file['file_name']) ?: 'evidence';
+        $fileName = str_replace(["\r", "\n", '"', '\\'], '_', (string) $file['file_name']) ?: 'evidence';
 
         return response($file['body'], 200, [
             'Content-Type' => $file['mime_type'],
