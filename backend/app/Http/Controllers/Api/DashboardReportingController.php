@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\Dashboard\DashboardReportingService;
+use App\Services\Dashboard\NeonDashboardReportingService;
 use App\Support\Api\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -12,10 +12,8 @@ use Illuminate\Validation\Rule;
 
 final class DashboardReportingController extends Controller
 {
-    public function __construct(private readonly DashboardReportingService $service) {}
+    public function __construct(private readonly NeonDashboardReportingService $service) {}
 
-    private function token(Request $request): string { return (string) $request->bearerToken(); }
-    private function actor(Request $request): string { return (string) data_get($request->attributes->get('supabase_user'), 'id', ''); }
     private function isAdmin(Request $request): bool
     {
         $permissions = $request->attributes->get('lfms_authorization')['permissions'] ?? [];
@@ -44,7 +42,7 @@ final class DashboardReportingController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         return ApiResponse::success(
-            $this->service->dashboard($this->token($request), $this->actor($request), $this->isAdmin($request)),
+            $this->service->dashboard($this->isAdmin($request)),
             'Dashboard data retrieved successfully.',
         );
     }
@@ -62,7 +60,7 @@ final class DashboardReportingController extends Controller
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
         $options = $this->normalizeDateBounds(array_merge(['from' => null, 'to' => null, 'status' => null, 'search' => null, 'page' => 1, 'per_page' => 20], $options));
-        return ApiResponse::success($this->service->report($this->token($request), $options), 'Report records retrieved successfully.');
+        return ApiResponse::success($this->service->report($options), 'Report records retrieved successfully.');
     }
 
     public function activity(Request $request): JsonResponse
@@ -79,7 +77,7 @@ final class DashboardReportingController extends Controller
         ]);
         $options = $this->normalizeDateBounds(array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options));
         if (!$admin) $options['user_id'] = null;
-        return ApiResponse::success($this->service->activity($this->token($request), $this->actor($request), $admin, $options), 'Activity history retrieved successfully.');
+        return ApiResponse::success($this->service->activity($admin, $options), 'Activity history retrieved successfully.');
     }
 
     public function audit(Request $request): JsonResponse
@@ -95,6 +93,6 @@ final class DashboardReportingController extends Controller
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
         $options = $this->normalizeDateBounds(array_merge(['user_id' => null, 'module' => null, 'action' => null, 'from' => null, 'to' => null, 'page' => 1, 'per_page' => 20], $options));
-        return ApiResponse::success($this->service->audit($this->token($request), $options), 'Row-level audit history retrieved successfully.');
+        return ApiResponse::success($this->service->audit($options), 'Row-level audit history retrieved successfully.');
     }
 }
