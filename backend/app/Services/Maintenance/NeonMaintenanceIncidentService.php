@@ -115,6 +115,12 @@ final class NeonMaintenanceIncidentService
 
     public function createMaintenanceRequest(array $data): array
     {
+        $hasFacility = !empty($data['facility_id']);
+        $hasAsset = !empty($data['asset_id']);
+        if ($hasFacility === $hasAsset) {
+            throw new MaintenanceIncidentException('A maintenance request must target exactly one facility or equipment asset.', 422);
+        }
+
         $id = (string) Str::uuid();
         $actorId = $this->actorId();
 
@@ -225,6 +231,10 @@ final class NeonMaintenanceIncidentService
 
     public function createIncident(array $data): array
     {
+        if (empty($data['facility_id']) && empty($data['asset_id'])) {
+            throw new MaintenanceIncidentException('An incident must identify a facility or equipment asset.', 422);
+        }
+
         $id = (string) Str::uuid();
         $actorId = $this->actorId();
 
@@ -308,7 +318,7 @@ final class NeonMaintenanceIncidentService
         $objectPath = 'incidents/'.$incidentId.'/'.Str::uuid().'.'.$extension;
         $stored = $this->storage->upload($file, $objectPath);
         $id = (string) Str::uuid();
-        $originalName = basename(str_replace('\\\\', '/', $file->getClientOriginalName()));
+        $originalName = basename(str_replace('\\', '/', $file->getClientOriginalName()));
         $originalName = preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $originalName) ?: 'evidence.'.$extension;
         $originalName = substr($originalName, 0, 255);
 
