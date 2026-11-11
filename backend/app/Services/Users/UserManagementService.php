@@ -12,10 +12,7 @@ use Throwable;
 
 class UserManagementService
 {
-    public function __construct(
-        private readonly SupabaseAdminAuthService $auth,
-        private readonly NeonIdentityContext $identity,
-    ) {}
+    public function __construct(private readonly SupabaseAdminAuthService $auth) {}
 
     public function availableRoles(): array
     {
@@ -85,7 +82,6 @@ class UserManagementService
 
         try {
             DB::transaction(function () use ($actorId, $userId, $data, $role): void {
-                $this->setActor($actorId);
                 DB::table('profiles')->insert([
                     'id' => $userId,
                     'full_name' => $data['full_name'],
@@ -113,7 +109,6 @@ class UserManagementService
         }
 
         DB::transaction(function () use ($actorId, $userId, $data): void {
-            $this->setActor($actorId);
             // Keep lock order consistent with status changes: Admin role, then profile.
             if (array_key_exists('role', $data)) {
                 DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
@@ -170,7 +165,6 @@ class UserManagementService
         $previousStatus = $initialProfile->status;
         try {
             DB::transaction(function () use ($actorId, $userId, $status, &$authStatusChanged, &$previousStatus): void {
-                $this->setActor($actorId);
                 // Serialize status changes against role changes using the canonical Admin role row.
                 DB::table('roles')->where('name', 'admin')->lockForUpdate()->first();
                 $profile = DB::table('profiles')->where('id', $userId)->lockForUpdate()->first();
@@ -296,10 +290,6 @@ class UserManagementService
             ->where('profiles.id', '<>', $excludedUserId)->exists();
     }
 
-    private function setActor(string $actorId): void
-    {
-        $this->identity->set($actorId);
-    }
 
     private function activity(string $actorId, string $targetId, string $action, array $metadata): void
     {
