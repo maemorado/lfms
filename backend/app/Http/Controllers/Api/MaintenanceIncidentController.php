@@ -92,11 +92,11 @@ final class MaintenanceIncidentController extends Controller
         return ApiResponse::success(['attachment' => $attachment], 'Incident evidence uploaded successfully.', 201);
     }
 
-    public function incidentAttachmentDownload(Request $request, string $incidentId, string $attachmentId): \\Illuminate\\Http\\Response
+    public function incidentAttachmentDownload(Request $request, string $incidentId, string $attachmentId): \Illuminate\Http\Response
     {
         $actorId = (string) data_get($request->attributes->get('supabase_user'), 'id', '');
         $file = $this->service->downloadIncidentAttachment($incidentId, $attachmentId, $actorId);
-        $fileName = preg_replace('/["\\\\\\r\\n]/', '_', (string) $file['file_name']) ?: 'evidence';
+        $fileName = str_replace(["\\r", "\\n", '"', '\\\\'], '_', (string) $file['file_name']) ?: 'evidence';
 
         return response($file['body'], 200, [
             'Content-Type' => $file['mime_type'],
