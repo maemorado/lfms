@@ -1,19 +1,24 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\\Feature;
 
-use App\Services\Authorization\SupabaseAuthorizationService;
-use App\Http\Middleware\RequirePermission;
-use App\Http\Middleware\RequireRole;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Tests\TestCase;
+use App\\Http\\Middleware\\RequirePermission;
+use App\\Http\\Middleware\\RequireRole;
+use App\\Services\\Authorization\\NeonAuthorizationService;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Http;
+use Mockery;
+use RuntimeException;
+use Tests\\TestCase;
 
-class LfmsAuthorizationTest extends TestCase
+final class LfmsAuthorizationTest extends TestCase
 {
+    private const USER_ID = '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1';
+
     protected function setUp(): void
     {
         parent::setUp();
+
         config([
             'supabase.url' => 'https://example.supabase.co',
             'supabase.publishable_key' => 'test-publishable-key',
@@ -21,50 +26,53 @@ class LfmsAuthorizationTest extends TestCase
         ]);
     }
 
-    public function test_unassigned_user_is_authenticated_but_denied_access(): void
+    private function fakeVerifiedAuthUser(string $email = 'person@example.test'): void
     {
         Http::fake([
             'https://example.supabase.co/auth/v1/user' => Http::response([
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'email' => 'person@example.test',
+                'id' => self::USER_ID,
+                'email' => $email,
             ], 200),
-            'https://example.supabase.co/rest/v1/profiles*' => Http::response([[
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'full_name' => 'Test Person',
-                'email' => 'person@example.test',
-                'status' => 'active',
-            ]], 200),
-            'https://example.supabase.co/rest/v1/user_roles*' => Http::response([], 200),
         ]);
+    }
+
+    public function test_unassigned_user_is_authenticated_but_denied_access(): void
+    {
+        $this->fakeVerifiedAuthUser();
+
+        $this->mock(NeonAuthorizationService::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->with(self::USER_ID)->andReturn(null);
+        });
 
         $this->withToken('verified-token')
             ->getJson('/api/auth/access')
             ->assertForbidden()
             ->assertJsonPath('code', 'role_not_assigned');
+
+        Http::assertSent(fn ($request) =>
+            $request->url() === 'https://example.supabase.co/auth/v1/user'
+            && $request->hasHeader('Authorization', 'Bearer verified-token')
+        );
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/rest/v1/'));
     }
 
-    public function test_staff_context_comes_from_database_not_client_input(): void
+    public function test_staff_authorization_is_loaded_from_neon_not_client_input(): void
     {
-        Http::fake([
-            'https://example.supabase.co/auth/v1/user' => Http::response([
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'email' => 'person@example.test',
-            ], 200),
-            'https://example.supabase.co/rest/v1/profiles*' => Http::response([[
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'full_name' => 'Test Person',
-                'email' => 'person@example.test',
-                'status' => 'active',
-            ]], 200),
-            'https://example.supabase.co/rest/v1/user_roles*' => Http::response([[
-                'role_id' => 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1',
-                'roles' => ['name' => 'staff_sa'],
-            ]], 200),
-            'https://example.supabase.co/rest/v1/role_permissions*' => Http::response([
-                ['permissions' => ['name' => 'facilities.view']],
-                ['permissions' => ['name' => 'reservations.create']],
-            ], 200),
-        ]);
+        $this->fakeVerifiedAuthUser();
+
+        $this->mock(NeonAuthorizationService::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->with(self::USER_ID)->andReturn([
+                'profile' => [
+                    'id' => self::USER_ID,
+                    'full_name' => 'Test Person',
+                    'email' => 'person@example.test',
+                    'employee_id' => null,
+                    'status' => 'active',
+                ],
+                'roles' => ['staff_sa'],
+                'permissions' => ['facilities.view', 'reservations.create'],
+            ]);
+        });
 
         $this->withToken('verified-token')
             ->getJson('/api/auth/access?role=admin&permissions[]=accounts.manage')
@@ -76,27 +84,21 @@ class LfmsAuthorizationTest extends TestCase
 
     public function test_versioned_access_route_returns_profile_roles_and_permissions(): void
     {
-        Http::fake([
-            'https://example.supabase.co/auth/v1/user' => Http::response([
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'email' => 'admin@example.test',
-            ], 200),
-            'https://example.supabase.co/rest/v1/profiles*' => Http::response([[
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'full_name' => 'LFMS Administrator',
-                'email' => 'admin@example.test',
-                'employee_id' => null,
-                'status' => 'active',
-            ]], 200),
-            'https://example.supabase.co/rest/v1/user_roles*' => Http::response([[
-                'role_id' => 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1',
-                'roles' => ['name' => 'admin'],
-            ]], 200),
-            'https://example.supabase.co/rest/v1/role_permissions*' => Http::response([
-                ['permissions' => ['name' => 'accounts.view']],
-                ['permissions' => ['name' => 'accounts.manage']],
-            ], 200),
-        ]);
+        $this->fakeVerifiedAuthUser('admin@example.test');
+
+        $this->mock(NeonAuthorizationService::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->with(self::USER_ID)->andReturn([
+                'profile' => [
+                    'id' => self::USER_ID,
+                    'full_name' => 'LFMS Administrator',
+                    'email' => 'admin@example.test',
+                    'employee_id' => null,
+                    'status' => 'active',
+                ],
+                'roles' => ['admin'],
+                'permissions' => ['accounts.view', 'accounts.manage'],
+            ]);
+        });
 
         $this->withToken('verified-token')
             ->getJson('/api/v1/auth/access')
@@ -108,25 +110,26 @@ class LfmsAuthorizationTest extends TestCase
             ->assertJsonPath('data.permissions.0', 'accounts.view');
     }
 
-    public function test_authorization_upstream_failure_fails_closed_with_503(): void
+    public function test_neon_authorization_failure_fails_closed_with_503(): void
     {
-        Http::fake([
-            'https://example.supabase.co/auth/v1/user' => Http::response([
-                'id' => '9d7f0c4e-38f8-4f30-8d5a-27d46e5db1e1',
-                'email' => 'person@example.test',
-            ], 200),
-            'https://example.supabase.co/rest/v1/profiles*' => Http::response(['message' => 'unavailable'], 500),
-        ]);
+        $this->fakeVerifiedAuthUser();
+
+        $this->mock(NeonAuthorizationService::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->with(self::USER_ID)
+                ->andThrow(new RuntimeException('Neon authorization unavailable.'));
+        });
 
         $this->withToken('verified-token')
             ->getJson('/api/auth/access')
-            ->assertStatus(503);
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'authorization_unavailable');
     }
 
-    public function test_authorization_service_rejects_invalid_identity_uuid(): void
+    public function test_authorization_service_rejects_invalid_identity_uuid_before_database_access(): void
     {
-        $service = app(SupabaseAuthorizationService::class);
-        $this->assertNull($service->resolve('verified-token', 'not-a-uuid'));
+        $service = app(NeonAuthorizationService::class);
+
+        $this->assertNull($service->resolve('not-a-uuid'));
     }
 
     public function test_permission_middleware_denies_missing_permissions(): void
