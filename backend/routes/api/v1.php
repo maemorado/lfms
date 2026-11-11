@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\MaintenanceIncidentController;
 use App\Http\Controllers\Api\NotificationAnnouncementController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Middleware\LoadLfmsAuthorizationContext;
+use App\Http\Middleware\LoadLfmsAuthorizationContextStateless;
 use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function():void{
  Route::get('/health',[HealthController::class,'showVersioned'])->name('health');
@@ -104,8 +105,17 @@ Route::prefix('v1')->name('api.v1.')->group(function():void{
     Route::get('/',[MaintenanceIncidentController::class,'incidentIndex'])->name('index');
     Route::post('/',[MaintenanceIncidentController::class,'incidentStore'])->middleware('permission:incidents.create')->name('store');
     Route::get('/{incidentId}',[MaintenanceIncidentController::class,'incidentShow'])->whereUuid('incidentId')->name('show');
-    Route::post('/{incidentId}/attachments',[MaintenanceIncidentController::class,'incidentAttachment'])->whereUuid('incidentId')->name('attachments.store');
     Route::patch('/{incidentId}',[MaintenanceIncidentController::class,'incidentUpdate'])->whereUuid('incidentId')->middleware('permission:incidents.manage')->name('update');
+   });
+  });
+
+  // Evidence endpoints use their own short Neon transactions so external
+  // Supabase Storage calls never hold an open database transaction.
+  Route::middleware(LoadLfmsAuthorizationContextStateless::class)->group(function():void{
+   Route::prefix('incidents')->name('incidents.attachments.')->middleware('permission:incidents.view')->group(function():void{
+    Route::post('/{incidentId}/attachments',[MaintenanceIncidentController::class,'incidentAttachment'])->whereUuid('incidentId')->middleware('permission:incidents.create')->name('store');
+    Route::get('/{incidentId}/attachments/{attachmentId}',[MaintenanceIncidentController::class,'incidentAttachmentDownload'])->whereUuid('incidentId')->whereUuid('attachmentId')->name('download');
+    Route::delete('/{incidentId}/attachments/{attachmentId}',[MaintenanceIncidentController::class,'incidentAttachmentDelete'])->whereUuid('incidentId')->whereUuid('attachmentId')->middleware('permission:incidents.manage')->name('destroy');
    });
   });
  });
