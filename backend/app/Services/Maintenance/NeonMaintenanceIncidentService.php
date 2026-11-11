@@ -3,14 +3,24 @@
 namespace App\Services\Maintenance;
 
 use App\Exceptions\MaintenanceIncidentException;
+use App\Services\Security\NeonIdentityContext;
+use App\Services\Storage\SupabasePrivateStorageService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use JsonException;
+use Throwable;
 
 final class NeonMaintenanceIncidentService
 {
+    public function __construct(
+        private readonly NeonIdentityContext $identity,
+        private readonly SupabasePrivateStorageService $storage,
+    ) {}
+
     public function targets(): array
     {
         $facilities = DB::table('facilities')
@@ -274,31 +284,138 @@ final class NeonMaintenanceIncidentService
         return $this->incidentDetail($id);
     }
 
-    public function addIncidentAttachment(string $incidentId, array $data): array
+    public function uploadIncidentAttachment(string $incidentId, UploadedFile $file, string $actorId): array
     {
-        $this->incidentDetail($incidentId);
-        $prefix = 'incidents/'.$incidentId.'/';
-        if (!str_starts_with($data['file_path'], $prefix) || str_contains($data['file_path'], '..')) {
-            throw new MaintenanceIncidentException('The evidence path does not belong to this incident.', 422);
-        }
+        $this->uuid($incidentId);
+        $extension = match (strtolower((string) $file->getMimeType())) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'application/pdf' => 'pdf',
+            'text/plain' => 'txt',
+            default => throw new MaintenanceIncidentException('Only JPEG, PNG, WebP, PDF, and plain-text evidence files are allowed.', 422),
+        };
 
+        // Authorize before accepting bytes into the private bucket.
+        DB::transaction(function () use ($incidentId, $actorId): void {
+            $this->identity->set($actorId);
+            $this->incidentDetail($incidentId);
+            if ($this->actorId() !== Str::lower($actorId)) {
+                throw new MaintenanceIncidentException('The authenticated identity changed during the request.', 401);
+            }
+        });
+
+        $objectPath = 'incidents/'.$incidentId.'/'.Str::uuid().'.'.$extension;
+        $stored = $this->storage->upload($file, $objectPath);
         $id = (string) Str::uuid();
+        $originalName = basename(str_replace('\\\\', '/', $file->getClientOriginalName()));
+        $originalName = preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $originalName) ?: 'evidence.'.$extension;
+        $originalName = substr($originalName, 0, 255);
+
         try {
-            DB::table('incident_attachments')->insert([
-                'id' => $id,
-                'incident_id' => $incidentId,
-                'file_path' => $data['file_path'],
-                'file_name' => $data['file_name'],
-                'uploaded_by' => $this->actorId(),
-                'uploaded_at' => now(),
-            ]);
-        } catch (QueryException $exception) {
-            $this->translateWriteFailure($exception);
+            return DB::transaction(function () use ($id, $incidentId, $actorId, $objectPath, $originalName): array {
+                $this->identity->set($actorId);
+                $this->incidentDetail($incidentId);
+                $verifiedActor = $this->actorId();
+
+                DB::table('incident_attachments')->insert([
+                    'id' => $id,
+                    'incident_id' => $incidentId,
+                    'file_path' => $objectPath,
+                    'file_name' => $originalName,
+                    'uploaded_by' => $verifiedActor,
+                    'uploaded_at' => now(),
+                ]);
+
+                $row = DB::table('incident_attachments')->where('id', $id)->first();
+                if (!$row) throw new MaintenanceIncidentException('Incident attachment metadata was not saved.', 502);
+                return (array) $row + ['mime_type' => $stored['mime_type'], 'size' => $stored['size']];
+            });
+        } catch (Throwable $exception) {
+            try {
+                $this->storage->delete($objectPath);
+            } catch (Throwable $cleanupException) {
+                Log::error('LFMS evidence cleanup failed after metadata insert failure.', [
+                    'attachment_id' => $id,
+                    'cleanup_exception' => $cleanupException::class,
+                ]);
+            }
+
+            if ($exception instanceof QueryException) $this->translateWriteFailure($exception);
+            throw $exception;
+        }
+    }
+
+    public function downloadIncidentAttachment(string $incidentId, string $attachmentId, string $actorId): array
+    {
+        $row = DB::transaction(function () use ($incidentId, $attachmentId, $actorId): array {
+            $this->identity->set($actorId);
+            $this->incidentDetail($incidentId);
+            $attachment = DB::table('incident_attachments')
+                ->where('incident_id', $incidentId)
+                ->where('id', $attachmentId)
+                ->first();
+            if (!$attachment) throw new MaintenanceIncidentException('Incident attachment not found.', 404);
+            return (array) $attachment;
+        });
+
+        $file = $this->storage->download($row['file_path']);
+        return [
+            'file_name' => $row['file_name'],
+            'mime_type' => $file['mime_type'],
+            'body' => $file['body'],
+        ];
+    }
+
+    public function deleteIncidentAttachment(string $incidentId, string $attachmentId, string $actorId): void
+    {
+        $row = DB::transaction(function () use ($incidentId, $attachmentId, $actorId): array {
+            $this->identity->set($actorId);
+            $this->incidentDetail($incidentId);
+            $attachment = DB::table('incident_attachments')
+                ->where('incident_id', $incidentId)
+                ->where('id', $attachmentId)
+                ->first();
+            if (!$attachment) throw new MaintenanceIncidentException('Incident attachment not found.', 404);
+            return (array) $attachment;
+        });
+
+        $download = null;
+        try {
+            $download = $this->storage->download($row['file_path']);
+            $this->storage->delete($row['file_path']);
+        } catch (MaintenanceIncidentException $exception) {
+            if ($exception->getCode() !== 404) throw $exception;
         }
 
-        $row = DB::table('incident_attachments')->where('id', $id)->first();
-        if (!$row) throw new MaintenanceIncidentException('Incident attachment metadata was not saved.', 502);
-        return (array) $row;
+        try {
+            DB::transaction(function () use ($incidentId, $attachmentId, $actorId): void {
+                $this->identity->set($actorId);
+                $this->incidentDetail($incidentId);
+                $deleted = DB::table('incident_attachments')
+                    ->where('incident_id', $incidentId)
+                    ->where('id', $attachmentId)
+                    ->delete();
+                if ($deleted !== 1) {
+                    throw new MaintenanceIncidentException('The attachment could not be removed from the incident.', 403);
+                }
+            });
+        } catch (Throwable $exception) {
+            if (is_array($download)) {
+                try {
+                    $this->storage->uploadBytes($row['file_path'], $download['body'], $download['mime_type']);
+                } catch (Throwable $restoreException) {
+                    Log::critical('LFMS evidence restore failed after metadata deletion was rejected.', [
+                        'attachment_id' => $attachmentId,
+                        'restore_exception' => $restoreException::class,
+                    ]);
+                    throw new MaintenanceIncidentException('The evidence file could not be restored after a failed metadata deletion. Administrator attention is required.', 503);
+                }
+            }
+
+            if ($exception instanceof QueryException) $this->translateWriteFailure($exception);
+            throw $exception;
+        }
     }
 
     private function maintenanceQuery(): Builder
