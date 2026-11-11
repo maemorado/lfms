@@ -89,6 +89,14 @@ The private `lfms-evidence` Storage bucket and its object policies remain in Sup
 - Each request that touches business data must establish identity inside a transaction; missing identity must fail closed. Session-level identity must never survive connection reuse.
 - RLS tests must execute as the runtime-equivalent role, not as the schema owner.
 
+## Current migration-branch status
+
+- 004, 005, and 006 have been executed on the isolated Neon migration branch in one transaction. The registry records their Git blob IDs.
+- 001 remains `pending_reconciliation` because of the two CHECK-constraint differences. 002 and 003 are recorded as adopted after semantic verification. 007 remains pending and was not executed.
+- Post-execution verification still reports 35 tables, 5 views, 35 RLS-enabled tables, 82 policies, 39 triggers, and 58 internal foreign keys. All 35 application tables currently contain zero rows. This must be rechecked before any future operation.
+- `lfms_runtime` exists as NOLOGIN/INHERIT, has membership in `lfms_app`, and has no elevated or BYPASSRLS attributes. It cannot yet accept network connections.
+- The source Supabase project was read-only throughout this stage; no source rows, objects, migrations, Auth users, or Storage objects were modified.
+
 ## Verification gates
 
 - Compare all 35 table definitions and 273 columns, 58 internal FKs, 129 indexes, constraints, and the approved-overlap exclusion constraint against the live source catalog.
