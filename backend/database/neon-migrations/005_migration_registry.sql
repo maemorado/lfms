@@ -10,7 +10,7 @@ CREATE TABLE private.neon_schema_migrations (
     CHECK (git_blob_sha1 ~ '^[0-9a-f]{40}$'),
   source_migrations text[] NOT NULL DEFAULT ARRAY[]::text[],
   record_kind text NOT NULL
-    CHECK (record_kind IN ('adopted', 'executed')),
+    CHECK (record_kind IN ('adopted', 'executed', 'pending_reconciliation')),
   recorded_at timestamptz NOT NULL DEFAULT now(),
   recorded_by name NOT NULL DEFAULT current_user,
   notes text
