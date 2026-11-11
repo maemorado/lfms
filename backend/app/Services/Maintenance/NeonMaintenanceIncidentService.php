@@ -35,7 +35,7 @@ final class NeonMaintenanceIncidentService
                     'condition' => $row->condition,
                     'status' => $row->status,
                     'location_id' => $row->location_id,
-                    'inventory_items' => [
+                    'inventory_items' => $row->item_ref_id === null ? null : [
                         'id' => $row->item_ref_id,
                         'name' => $row->item_name,
                         'item_code' => $row->item_code,
@@ -343,8 +343,8 @@ final class NeonMaintenanceIncidentService
                 'id',a.id,'asset_tag',a.asset_tag,'condition',a.condition,'status',a.status,
                 'inventory_items',jsonb_build_object('id',i.id,'name',i.name,'item_code',i.item_code)
             ) END AS equipment_assets")
-            ->selectRaw("jsonb_build_object('id',reporter.id,'full_name',reporter.full_name,'email',reporter.email) AS profiles")
-            ->selectRaw('(' . $this->incidentAttachmentsSubquery() . ') AS incident_attachments');
+            ->selectRaw("CASE WHEN reporter.id IS NULL THEN NULL ELSE jsonb_build_object('id',reporter.id,'full_name',reporter.full_name,'email',reporter.email) END AS profiles")
+            ->selectRaw('(' . $this->incidentAttachmentsSubquery . ') AS incident_attachments');
     }
 
     private function incidentAttachmentsSubquery(): string
