@@ -26,9 +26,9 @@ The foundation branch is the correct isolated staging target for the next additi
 | Internal public foreign keys | 58 | 58 | Match |
 | External FK to `auth.users` | 1 | 0 | Correctly removed for cross-database identity |
 | Public application triggers | 39 | 39 | Count matches |
-| Public views | 5 | 0 | Not yet ported |
-| Public RLS-enabled tables | 35 | 0 | Security stage still required |
-| Public RLS policies | 82 | 0 | Security stage still required |
+| Public views | 5 | 5 | Match; all five are security-invoker views |
+| Public RLS-enabled tables | 35 | 35 | Match |
+| Public RLS policies | 82 | 82 | Match; all 82 target `lfms_app` |
 
 **Correction to the earlier assessment:** a fresh source catalog count reports 59 public foreign keys total, not 58. One is the cross-database `profiles.id -> auth.users.id` FK; the 58 remaining internal FKs are present on Neon. The Neon target correctly has no cross-database FK.
 
@@ -50,15 +50,52 @@ The source check constraint `return_transaction_items_condition_check` allows `m
 
 This is a real source/target mismatch. It was not silently accepted or changed. The correction needs a reviewed forward migration that replaces this check definition without touching any rows. It must be applied only to the Neon staging branch and validated before any production consideration.
 
-## Stage 1 repository change
+## Stage 1 repository changes
 
-Added:
+Added on `migration/neon-stage-1`:
 
 - `backend/database/migrations/2026_11_11_000001_adopt_neon_schema_foundation.php`
+- `backend/database/migrations/2026_11_11_000002_create_lfms_reporting_views.php`
+- `backend/database/migrations/sql/2026_11_11_000002_create_lfms_reporting_views.sql`
+- `backend/database/migrations/2026_11_11_000003_enable_lfms_rls_and_policies.php`
+- `backend/database/migrations/sql/2026_11_11_000003_enable_lfms_rls_and_policies.sql`
 
-This is a verification-only Laravel baseline adoption migration. It checks the known 35-table / 243-column foundation, key constraint counts, absence of the external Auth FK, `btree_gist`, the non-login `lfms_app` group, and the corrected borrowing guard. It does not create, alter, truncate, or delete application objects or records. It deliberately does not assert that the tables are empty.
+The baseline adoption migration is verification-only. It checks the known 35-table / 243-column foundation, key constraint counts, absence of the external Auth FK, `btree_gist`, the non-login `lfms_app` group, and the corrected borrowing guard. It does not create, alter, truncate, or delete application objects or records. It deliberately does not assert that the tables are empty.
 
-The migration's `down()` throws rather than removing the existing foundation. This is intentional: the pre-existing schema is not disposable.
+The views and RLS migrations are adoption-aware: they skip a complete pre-existing object set and stop on a partial state rather than dropping/replacing policies. Their `down()` methods throw rather than removing security objects. This is intentional: automatic rollback must not remove the existing foundation or weaken RLS.
+
+## Stage 1 applied to Neon staging
+
+The five reporting views and the Neon-adapted RLS migration were applied in transactions to `lfms-neon-migration-foundation` only. The RLS migration created all 82 policies, enabled RLS on all 35 application tables, granted table access to the restricted `lfms_app` group, and granted execution only to the approved identity helpers and business RPCs.
+
+Post-application catalog checks confirmed:
+
+- 35/35 public tables have RLS enabled.
+- 82 public policies exist across 35 tables.
+- All 82 policies target only `lfms_app`; none refer to Supabase `auth.uid()`.
+- All five views have `security_invoker=true`.
+- All 39 application triggers remain attached.
+- `private.has_permission(text)` is SECURITY DEFINER with an empty `search_path`.
+- `lfms_app` can use the private schema and execute `private.current_user_id()` and `private.has_permission(text)`.
+- The borrowing and inventory workflow RPCs are the only public business functions explicitly granted to `lfms_app`.
+
+The direct SQL application was performed on the Neon staging branch. The Laravel migration command was not run, and the Laravel `migrations` ledger was not modified. The PHP migration wrappers detect the complete object sets and will adopt them without attempting to recreate policies when the Laravel migration process is separately approved.
+
+## Stage 1 security verification
+
+A temporary fixture test ran inside a transaction and rolled back its fixture changes. It verified:
+
+1. Without transaction-local identity, `lfms_app` cannot read any profile rows.
+2. With an active user UUID set locally, the caller sees exactly their own profile and cannot see another user's profile.
+3. Neon role/permission lookup succeeds through `private.has_permission`.
+4. A non-auditor cannot read audit history.
+5. A caller with `borrowing.request` still cannot insert directly into the borrowing ledger; the borrowing RPC trigger rejects the write without the transaction-bound marker.
+6. A user without the profile-update grant cannot change the profile email column.
+7. The temporary profiles, role, and role-permission rows were rolled back; a follow-up query found zero fixture rows.
+
+A separate transaction-context check confirmed `set_config('app.current_user_id', ..., true)` is visible inside its transaction and `private.current_user_id()` returns NULL after transaction completion. The underlying setting is reset to an empty value by PostgreSQL; the helper correctly normalizes it to NULL.
+
+For this isolated staging test only, the existing owner role received SET membership on the `lfms_app` group so it could execute `SET LOCAL ROLE lfms_app`. The owner remains privileged and is not a runtime identity. The `lfms_app` group itself remains NOLOGIN and non-BYPASSRLS. A separate runtime login and password have not been created or exposed.
 
 ## Mapping of all 21 Supabase migrations
 
@@ -94,11 +131,15 @@ The next implementation stages will add versioned Neon migrations for the remain
 
 - Supabase source project was queried read-only; no source writes were made.
 - Neon default branch `main` was queried read-only; no schema or data changes were made.
-- Neon foundation branch was queried read-only; no schema or data changes were made.
+- Neon foundation branch received only the additive reporting-view and RLS DDL described above. No application records were inserted or changed; the temporary RLS test fixtures were rolled back.
 - A dedicated Git branch, `migration/neon-stage-1`, was created from the observed remote `main`.
-- No migration command, reset command, data transfer, service creation, or deployment was run.
+- No Laravel migration command, reset command, data transfer, service creation, or deployment was run.
 - Render repository access still requires the user to select only `maemorado/lfms` in the Render GitHub App installation settings.
 
 ## Next gate
 
-Before applying any Neon DDL, complete the constraint-difference inventory and prepare the additive/security migrations. Then test them only on `lfms-neon-migration-foundation`, using a non-owner, non-BYPASSRLS role and transaction-local identity context. The production cutover remains out of scope and requires separate approval.
+The remaining check-constraint mismatch is still unresolved: Neon currently excludes `missing` from `return_transaction_items_condition_check`, while Supabase includes it. Correcting that definition requires replacing one check constraint. No rows need to be changed, but the operation does remove and recreate a schema constraint, so it is being held for explicit review rather than hidden inside the RLS migration.
+
+Next work can proceed on Laravel's Neon authorization resolver and transaction middleware, plus the remaining service refactors. Runtime credentials must be configured separately; the database owner/BYPASSRLS principal will not be used for normal requests. Render repository access still awaits the user-side GitHub App installation change.
+
+The production cutover remains out of scope and requires separate approval.
