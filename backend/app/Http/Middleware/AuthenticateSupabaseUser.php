@@ -7,6 +7,7 @@ use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticateSupabaseUser
@@ -44,12 +45,12 @@ class AuthenticateSupabaseUser
         }
 
         $user = $authResponse->json();
-        if (!is_array($user) || !isset($user['id']) || !is_string($user['id'])) {
+        if (!is_array($user) || !is_string($user['id'] ?? null) || !Str::isUuid($user['id'])) {
             return ApiResponse::error('Authentication service returned an invalid user response.', 503, 'authentication_unavailable');
         }
 
         $request->attributes->set('supabase_user', [
-            'id' => $user['id'],
+            'id' => Str::lower($user['id']),
             'email' => isset($user['email']) && is_string($user['email']) ? $user['email'] : null,
         ]);
 
