@@ -10,7 +10,7 @@ Do not run Supabase CLI migration commands against the source project. Do not re
 
 - Source project: LFMS Supabase project; source schema inspected live on 2026-11-11.
 - Repository source: 21 SQL files under `supabase/migrations`.
-- Live source: 35 public tables, all with RLS enabled; 82 public RLS policies; 18 application functions; 39 application triggers; 5 views; 58 public foreign keys.
+- Live source: 35 public tables, all with RLS enabled; 82 public RLS policies; 18 application functions; 39 application triggers; 5 views; 59 public foreign keys (58 internal application FKs plus the Supabase Auth FK).
 - The only cross-system FK is `profiles.id -> auth.users.id`. Neon keeps the exact Supabase Auth UUID as `profiles.id` but omits that FK because Auth remains in Supabase.
 - Supabase Auth triggers are replaced by Laravel user provisioning and email synchronization; Auth internal tables are not copied.
 - Supabase Storage bucket and object policies remain in Supabase and are handled by a separate Laravel-mediated Storage stage. No `storage.*` tables are created in Neon.
@@ -40,7 +40,7 @@ The 21 original migrations are consolidated by responsibility rather than replay
 ## Verification gates
 
 - Validate the schema migration on an isolated Neon branch before applying to the Neon primary branch.
-- Compare all 35 table definitions, 57 internal FKs, indexes, exclusion constraint, and final-state columns against the live source catalog.
+- Compare all 35 table definitions, 58 internal FKs, indexes, exclusion constraint, and final-state columns against the live source catalog.
 - Verify RLS policies and grants as `lfms_runtime`, not as the owner.
 - Test transaction-pool reuse across two different users and a request with no identity context.
 - No production cutover or source Supabase mutation is included in this migration sequence.
