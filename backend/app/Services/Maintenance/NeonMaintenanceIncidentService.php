@@ -20,7 +20,7 @@ final class NeonMaintenanceIncidentService
             ->all();
 
         $assets = DB::table('equipment_assets as a')
-            ->join('inventory_items as i', 'i.id', '=', 'a.item_id')
+            ->leftJoin('inventory_items as i', 'i.id', '=', 'a.item_id')
             ->leftJoin('inventory_locations as l', 'l.id', '=', 'a.location_id')
             ->orderBy('a.asset_tag')
             ->get([
@@ -307,14 +307,14 @@ final class NeonMaintenanceIncidentService
             ->leftJoin('facilities as f', 'f.id', '=', 'mr.facility_id')
             ->leftJoin('equipment_assets as a', 'a.id', '=', 'mr.asset_id')
             ->leftJoin('inventory_items as i', 'i.id', '=', 'a.item_id')
-            ->join('profiles as reporter', 'reporter.id', '=', 'mr.reported_by')
+            ->leftJoin('profiles as reporter', 'reporter.id', '=', 'mr.reported_by')
             ->select('mr.*')
             ->selectRaw("CASE WHEN f.id IS NULL THEN NULL ELSE jsonb_build_object('id',f.id,'name',f.name,'code',f.code) END AS facilities")
             ->selectRaw("CASE WHEN a.id IS NULL THEN NULL ELSE jsonb_build_object(
                 'id',a.id,'asset_tag',a.asset_tag,'condition',a.condition,'status',a.status,
-                'inventory_items',jsonb_build_object('id',i.id,'name',i.name,'item_code',i.item_code)
+                'inventory_items',CASE WHEN i.id IS NULL THEN NULL ELSE jsonb_build_object('id',i.id,'name',i.name,'item_code',i.item_code) END
             ) END AS equipment_assets")
-            ->selectRaw("jsonb_build_object('id',reporter.id,'full_name',reporter.full_name,'email',reporter.email) AS profiles")
+            ->selectRaw("CASE WHEN reporter.id IS NULL THEN NULL ELSE jsonb_build_object('id',reporter.id,'full_name',reporter.full_name,'email',reporter.email) END AS profiles")
             ->selectRaw('(' . $this->maintenanceRecordsSubquery() . ') AS maintenance_records');
     }
 
@@ -336,7 +336,7 @@ final class NeonMaintenanceIncidentService
             ->leftJoin('facilities as f', 'f.id', '=', 'ir.facility_id')
             ->leftJoin('equipment_assets as a', 'a.id', '=', 'ir.asset_id')
             ->leftJoin('inventory_items as i', 'i.id', '=', 'a.item_id')
-            ->join('profiles as reporter', 'reporter.id', '=', 'ir.reported_by')
+            ->leftJoin('profiles as reporter', 'reporter.id', '=', 'ir.reported_by')
             ->select('ir.*')
             ->selectRaw("CASE WHEN f.id IS NULL THEN NULL ELSE jsonb_build_object('id',f.id,'name',f.name,'code',f.code) END AS facilities")
             ->selectRaw("CASE WHEN a.id IS NULL THEN NULL ELSE jsonb_build_object(
