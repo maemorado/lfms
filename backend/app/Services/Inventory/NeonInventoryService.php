@@ -484,11 +484,16 @@ final class NeonInventoryService
     private function translateWriteFailure(QueryException $exception): never
     {
         $state = $exception->errorInfo[0] ?? (string) $exception->getCode();
+        $raw = strtolower($exception->getMessage());
+        if (str_contains($raw, 'insufficient stock')) {
+            throw new InventoryException('There is not enough stock at this location for that withdrawal.', 409, $exception);
+        }
         [$message, $status] = match ($state) {
             '23505' => ['The inventory change conflicts with an existing record.', 409],
             '23503' => ['The selected category, location, or related record is invalid.', 422],
-            '23514' => ['The inventory data violates an existing database rule.', 422],
+            '23514', '22023' => ['The inventory data violates an existing database rule.', 422],
             '42501' => ['Your account does not have permission to perform this inventory operation.', 403],
+            '28000' => ['Your authenticated identity is required for this inventory operation.', 401],
             default => ['The inventory service could not complete the request.', 502],
         };
 
