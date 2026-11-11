@@ -1090,14 +1090,14 @@ grant execute on function private.current_user_id() to lfms_app;
 
 grant execute on function private.has_permission(text) to lfms_app;
 
-grant execute on function public.apply_inventory_stock_movement(p_item_id uuid, p_location_id uuid, p_movement_type text, p_quantity numeric, p_remarks text default null, p_reference_type text default null, p_reference_id uuid default null) to lfms_app;
+grant execute on function public.apply_inventory_stock_movement(uuid, uuid, text, numeric, text, text, uuid) to lfms_app;
 
-grant execute on function public.create_borrow_request(p_expected_return_at timestamptz, p_remarks text, p_items jsonb, p_reservation_id uuid default null) to lfms_app;
+grant execute on function public.create_borrow_request(timestamptz, text, jsonb, uuid) to lfms_app;
 
-grant execute on function public.review_borrow_request(p_request_id uuid, p_decision text, p_remarks text default null) to lfms_app;
+grant execute on function public.review_borrow_request(uuid, text, text) to lfms_app;
 
-grant execute on function public.cancel_borrow_request(p_request_id uuid) to lfms_app;
+grant execute on function public.cancel_borrow_request(uuid) to lfms_app;
 
-grant execute on function public.release_borrow_request(p_request_id uuid, p_items jsonb, p_remarks text default null) to lfms_app;
+grant execute on function public.release_borrow_request(uuid, jsonb, text) to lfms_app;
 
-grant execute on function public.process_borrow_return(p_transaction_id uuid, p_items jsonb, p_remarks text default null) to lfms_app;
+grant execute on function public.process_borrow_return(uuid, jsonb, text) to lfms_app;
