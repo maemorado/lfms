@@ -38,6 +38,17 @@ final class NeonIdentityContext
         }
 
         $canonicalUserId = Str::lower($userId);
+        $existing = DB::selectOne('select private.current_user_id()::text as current_user_id');
+        $existingUserId = $existing->current_user_id ?? null;
+
+        if (is_string($existingUserId)) {
+            if ($existingUserId !== $canonicalUserId) {
+                throw new LogicException('The authenticated identity cannot change during a database transaction.');
+            }
+
+            return;
+        }
+
         $transaction = DB::selectOne('select pg_catalog.txid_current()::text as transaction_id');
         $transactionId = $transaction->transaction_id ?? null;
 
