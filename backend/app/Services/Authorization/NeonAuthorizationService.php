@@ -22,7 +22,7 @@ final class NeonAuthorizationService
             return null;
         }
 
-        $connection = DB::connection('pgsql');
+        $connection = DB::connection();
 
         $profile = $connection->table('profiles')
             ->select(['id', 'full_name', 'email', 'employee_id', 'status'])
