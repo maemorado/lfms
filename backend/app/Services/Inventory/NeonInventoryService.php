@@ -219,7 +219,7 @@ final class NeonInventoryService
             ->get([
                 'a.id', 'a.item_id', 'a.asset_tag', 'a.serial_number', 'a.condition', 'a.status',
                 'a.location_id', 'a.created_at', 'a.updated_at',
-                'l.id as location_ref_id', 'l.name as location_name', 'l.facility_id',
+                'l.id as location_ref_id', 'l.id as location_ref_id', 'l.name as location_name', 'l.facility_id',
                 'f.id as facility_ref_id', 'f.name as facility_name', 'f.code as facility_code',
             ])
             ->map(fn (object $row): array => $this->normalizeAsset($row))
@@ -318,8 +318,8 @@ final class NeonInventoryService
         $perPage = min(100, max(1, $perPage));
 
         $paginator = DB::table('inventory_movements as m')
-            ->join('inventory_items as i', 'i.id', '=', 'm.item_id')
-            ->join('inventory_locations as l', 'l.id', '=', 'm.location_id')
+            ->leftJoin('inventory_items as i', 'i.id', '=', 'm.item_id')
+            ->leftJoin('inventory_locations as l', 'l.id', '=', 'm.location_id')
             ->leftJoin('profiles as p', 'p.id', '=', 'm.performed_by')
             ->where('m.item_id', $itemId)
             ->orderByDesc('m.created_at')
@@ -362,7 +362,7 @@ final class NeonInventoryService
         unset($item['category_ref_id'], $item['category_name']);
 
         $item['inventory_stock'] = DB::table('inventory_stock as s')
-            ->join('inventory_locations as l', 'l.id', '=', 's.location_id')
+            ->leftJoin('inventory_locations as l', 'l.id', '=', 's.location_id')
             ->leftJoin('facilities as f', 'f.id', '=', 'l.facility_id')
             ->where('s.item_id', $item['id'])
             ->orderBy('l.name')
@@ -376,8 +376,8 @@ final class NeonInventoryService
                     'id' => $stock->id,
                     'quantity' => (float) $stock->quantity,
                     'location_id' => $stock->location_id,
-                    'inventory_locations' => [
-                        'id' => $stock->location_id,
+                    'inventory_locations' => $stock->location_ref_id === null ? null : [
+                        'id' => $stock->location_ref_id,
                         'name' => $stock->location_name,
                         'facility_id' => $stock->facility_id,
                         'facilities' => $stock->facility_ref_id === null ? null : [
@@ -444,7 +444,7 @@ final class NeonInventoryService
         return [
             'id' => $row->id,
             'item_id' => $row->item_id,
-            'inventory_items' => [
+            'inventory_items' => $row->item_ref_id === null ? null : [
                 'id' => $row->item_ref_id,
                 'name' => $row->item_name,
                 'item_code' => $row->item_code,
@@ -452,7 +452,7 @@ final class NeonInventoryService
                 'unit' => $row->unit,
             ],
             'location_id' => $row->location_id,
-            'inventory_locations' => [
+            'inventory_locations' => $row->location_ref_id === null ? null : [
                 'id' => $row->location_ref_id,
                 'name' => $row->location_name,
             ],
