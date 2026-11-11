@@ -2,7 +2,6 @@
 
 namespace App\Services\Facilities;
 
-use App\Services\Security\NeonIdentityContext;
 use App\Exceptions\FacilityReservationException;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -12,8 +11,6 @@ use Illuminate\Support\Str;
 
 class FacilityManagementService
 {
-    public function __construct(private readonly NeonIdentityContext $identity) {}
-
     public function list(array $filters): LengthAwarePaginator
     {
         $query = $this->query();
@@ -71,7 +68,6 @@ class FacilityManagementService
     public function create(string $actorId, array $data): array
     {
         return DB::transaction(function () use ($actorId, $data): array {
-            $this->setActor($actorId);
             $this->assertReferences($data['building_id'], $data['facility_type_id']);
             $id = (string) Str::uuid();
             DB::table('facilities')->insert([
@@ -88,7 +84,6 @@ class FacilityManagementService
     public function update(string $actorId, string $id, array $data): array
     {
         return DB::transaction(function () use ($actorId, $id, $data): array {
-            $this->setActor($actorId);
             $facility = DB::table('facilities')->where('id', $id)->lockForUpdate()->first();
             if (!$facility) throw new FacilityReservationException('Facility not found.', 404);
             $buildingId = $data['building_id'] ?? $facility->building_id;
@@ -152,10 +147,6 @@ class FacilityManagementService
         if (!$typeQuery->exists()) throw new FacilityReservationException('Selected facility type is inactive or does not exist.', 422);
     }
 
-    private function setActor(string $actorId): void
-    {
-        $this->identity->set($actorId);
-    }
 
     private function activity(string $actorId, string $recordId, string $action, array $metadata): void
     {
