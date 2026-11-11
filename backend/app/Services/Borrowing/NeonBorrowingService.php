@@ -156,7 +156,7 @@ final class NeonBorrowingService
     {
         return DB::table('borrow_transactions as bt')
             ->join('borrow_requests as br', 'br.id', '=', 'bt.borrow_request_id')
-            ->join('profiles as p', 'p.id', '=', 'br.borrower_id')
+            ->leftJoin('profiles as p', 'p.id', '=', 'br.borrower_id')
             ->select('bt.*')
             ->selectRaw("jsonb_build_object(
                 'id',br.id,'borrower_id',br.borrower_id,'status',br.status,
@@ -230,7 +230,7 @@ final class NeonBorrowingService
             'asset_id', bti.asset_id,
             'quantity', bti.quantity,
             'location_id', bti.location_id,
-            'inventory_items', jsonb_build_object('id', i.id, 'name', i.name, 'item_code', i.item_code, 'item_type', i.item_type, 'unit', i.unit),
+            'inventory_items', CASE WHEN i.id IS NULL THEN NULL ELSE jsonb_build_object('id', i.id, 'name', i.name, 'item_code', i.item_code, 'item_type', i.item_type, 'unit', i.unit) END,
             'equipment_assets', CASE WHEN ea.id IS NULL THEN NULL ELSE jsonb_build_object('id', ea.id, 'asset_tag', ea.asset_tag, 'condition', ea.condition, 'status', ea.status) END
         ) ORDER BY bti.id), '[]'::jsonb)
         FROM public.borrow_transaction_items bti
