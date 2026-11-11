@@ -48,7 +48,7 @@ At the time of inspection, exact row counts were zero in all 35 Neon application
 
 ### Runtime-role state
 
-The existing database has the non-login `lfms_app` group role, with no superuser or BYPASSRLS attributes. It does not yet have an `lfms_runtime` principal or a migration registry. Migration `006_runtime_role_membership.sql` creates `lfms_runtime` as a **NOLOGIN** least-privilege placeholder and grants membership in `lfms_app`. It does not provision a password or a Render secret. A LOGIN credential must be provisioned separately only when the Render service is ready.
+The database has the non-login `lfms_app` group role and the separate `lfms_runtime` role. `lfms_runtime` is currently **NOLOGIN**, inherits `lfms_app`, and has no elevated or BYPASSRLS attributes. It cannot accept network connections and has no password. The private migration registry exists. A LOGIN credential must be provisioned separately only after the Render GitHub connection and service configuration are ready.
 
 ## Versioned sequence
 
@@ -59,10 +59,11 @@ The existing database has the non-login `lfms_app` group role, with no superuser
 | 003 | `003_rls_and_runtime_grants.sql` | RLS on all 35 tables, all 82 translated policies, and least-privilege grants to `lfms_app`. | Policies and grants exist; final review ongoing |
 | 004 | `004_reporting_views.sql` | Five security-invoker reporting views and SELECT grants. | Views already exist; migration file now versions them |
 | 005 | `005_migration_registry.sql` | Private registry for executed, adopted, and pending-reconciliation migration records. | Migration file prepared; registry not yet created |
-| 006 | `006_runtime_role_membership.sql` | Non-login `lfms_runtime` principal inheriting only `lfms_app` privileges. | Migration file prepared; runtime role not yet created |
+| 006 | `006_runtime_role_membership.sql` | Non-login `lfms_runtime` principal inheriting only `lfms_app` privileges. | Executed; role is NOLOGIN |
 | 007 | `007_source_final_constraint_alignment.sql` | Align the two incorrect CHECK constraints with the source's final state. | Prepared only; **not approved for execution** |
+| 008 | `008_signed_transaction_identity.sql` | HMAC-signed transaction-local identity, protected signing key, verified audit actor, and Auth email synchronization. | Executed; PHP/Neon signature integration test added |
 
-Migrations 001-003 are represented by the existing Neon objects, but no ledger existed when they were created. Do not claim exact execution history until the live schema is reconciled and the registry records them as `adopted` or `pending_reconciliation`. Migration 004 is intentionally idempotent and reasserts the already-present view definitions. Migration 005's registry is private and inaccessible to `lfms_app`.
+Migrations 001-003 are represented by the existing Neon objects. The registry now records 001 as `pending_reconciliation`, 002-003 as `adopted`, 004-006 and 008 as `executed`, and 007 as `pending_reconciliation`. Migration 004 reasserts the five security-invoker views. The migration registry and identity signing key are private and inaccessible to `lfms_app`.
 
 ## Source migration mapping
 
@@ -84,17 +85,20 @@ The private `lfms-evidence` Storage bucket and its object policies remain in Sup
 
 - Schema/migration owner: administrative Neon identity used only for reviewed schema changes; never for Laravel request traffic.
 - `lfms_app`: NOLOGIN group role targeted by RLS policies and granted only the required table/function privileges.
-- `lfms_runtime`: separate least-privilege role, member of `lfms_app`, with no superuser, create-role, create-db, replication, or BYPASSRLS privileges. Its password is provisioned separately and never committed.
-- Laravel uses Neon's pooled endpoint for normal requests and transaction-local identity context only after Supabase bearer-token validation.
-- Each request that touches business data must establish identity inside a transaction; missing identity must fail closed. Session-level identity must never survive connection reuse.
+- `lfms_runtime`: separate least-privilege role, currently NOLOGIN, member of `lfms_app`, with no superuser, create-role, create-db, replication, or BYPASSRLS privileges. A LOGIN credential is not configured yet and must never be committed.
+- Laravel uses Neon's pooled endpoint for normal requests and establishes identity only after Supabase bearer-token validation.
+- A custom GUC alone is not trusted: Laravel signs `user_uuid:txid_current()` with a 32-byte HMAC key. `private.current_user_id()` verifies that signature against a private database key and returns NULL for missing, invalid, or replayed context.
+- The HMAC key is stored in `private.identity_signing_key`, which the runtime role cannot read. Laravel receives the matching 64-character hex key through `LFMS_IDENTITY_HMAC_KEY` in a server-only environment variable.
+- Each authenticated request is wrapped in one database transaction; nested service transactions use savepoints. The identity context is transaction-local and clears on commit/rollback.
 - RLS tests must execute as the runtime-equivalent role, not as the schema owner.
 
 ## Current migration-branch status
 
-- 004, 005, and 006 have been executed on the isolated Neon migration branch in one transaction. The registry records their Git blob IDs.
-- 001 remains `pending_reconciliation` because of the two CHECK-constraint differences. 002 and 003 are recorded as adopted after semantic verification. 007 remains pending and was not executed.
-- Post-execution verification still reports 35 tables, 5 views, 35 RLS-enabled tables, 82 policies, 39 triggers, and 58 internal foreign keys. All 35 application tables currently contain zero rows. This must be rechecked before any future operation.
+- 004, 005, 006, and 008 have been executed on the isolated Neon migration branch. The private registry records Git blob IDs and reconciliation status for versions 001-008.
+- 001 remains `pending_reconciliation` because of the two CHECK-constraint differences. 002 and 003 are adopted after semantic verification. 007 remains pending and was not executed.
+- Post-execution verification reports 35 tables, 5 views, 35 RLS-enabled tables, 82 policies, 39 triggers, and 58 internal foreign keys. All 35 application tables currently contain zero rows. This must be rechecked before any future operation.
 - `lfms_runtime` exists as NOLOGIN/INHERIT, has membership in `lfms_app`, and has no elevated or BYPASSRLS attributes. It cannot yet accept network connections.
+- A live Neon transaction test confirmed a valid HMAC identity is accepted under `SET ROLE lfms_app`, an arbitrary forged signature returns NULL, and the identity GUCs are empty after transaction completion.
 - The source Supabase project was read-only throughout this stage; no source rows, objects, migrations, Auth users, or Storage objects were modified.
 
 ## Verification gates
