@@ -368,7 +368,7 @@ final class NeonInventoryService
             ->orderBy('l.name')
             ->get([
                 's.id', 's.quantity', 's.location_id',
-                'l.name as location_name', 'l.facility_id',
+                'l.id as location_ref_id', 'l.name as location_name', 'l.facility_id',
                 'f.id as facility_ref_id', 'f.name as facility_name', 'f.code as facility_code',
             ])
             ->map(function (object $stock): array {
