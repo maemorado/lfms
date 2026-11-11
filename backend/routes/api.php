@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 // All API traffic is rate-limited. The limiter is configured in AppServiceProvider.
 Route::middleware('throttle:api')->group(function (): void {
     Route::get('/health', [HealthController::class, 'show']);
+    Route::get('/ready', [HealthController::class, 'ready']);
 
     require __DIR__.'/api/v1.php';
 
