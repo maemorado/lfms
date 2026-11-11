@@ -13,14 +13,7 @@ BEGIN
   WHERE rolname = 'lfms_runtime';
 
   IF NOT FOUND THEN
-    CREATE ROLE lfms_runtime
-      NOLOGIN
-      INHERIT
-      NOSUPERUSER
-      NOCREATEDB
-      NOCREATEROLE
-      NOREPLICATION
-      NOBYPASSRLS;
+    EXECUTE 'CREATE ROLE lfms_runtime NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS';
   ELSE
     IF existing_role.rolsuper
        OR existing_role.rolcreatedb
@@ -30,13 +23,7 @@ BEGIN
       RAISE EXCEPTION 'Existing lfms_runtime role has unsafe elevated attributes';
     END IF;
 
-    ALTER ROLE lfms_runtime
-      INHERIT
-      NOSUPERUSER
-      NOCREATEDB
-      NOCREATEROLE
-      NOREPLICATION
-      NOBYPASSRLS;
+    EXECUTE 'ALTER ROLE lfms_runtime INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS';
   END IF;
 END
 $role$;
