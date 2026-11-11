@@ -2,7 +2,8 @@
 
 namespace App\Services\Reservations;
 
-use App\Services\Security\NeonIdentityContext;use App\Exceptions\FacilityReservationException;
+use App\Services\Security\NeonIdentityContext;
+use App\Exceptions\FacilityReservationException;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 class ReservationManagementService
 {
     public function __construct(private readonly NeonIdentityContext $identity) {}
+
     public function list(array $filters, string $actorId, bool $isAdmin): LengthAwarePaginator
     {
         $query = $this->query();
