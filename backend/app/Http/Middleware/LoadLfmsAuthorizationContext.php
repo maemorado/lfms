@@ -24,16 +24,18 @@ final class LoadLfmsAuthorizationContext
             return ApiResponse::error('Authentication is required.', 401, 'unauthenticated');
         }
 
-        $connection = DB::connection('pgsql');
+        $connection = DB::connection();
 
         // Keep the verified Supabase subject and all downstream business queries
         // on one transaction. SET LOCAL semantics prevent pooled-connection
         // identity from leaking into the next request.
         return $connection->transaction(function () use ($request, $next, $identity, $connection): Response {
-            $connection->selectOne(
-                "SELECT set_config('app.current_user_id', ?, true)",
-                [$identity['id']],
-            );
+            if ($connection->getDriverName() === 'pgsql') {
+                $connection->selectOne(
+                    "SELECT set_config('app.current_user_id', ?, true)",
+                    [$identity['id']],
+                );
+            }
 
             try {
                 $context = $this->authorization->resolve($identity['id']);
