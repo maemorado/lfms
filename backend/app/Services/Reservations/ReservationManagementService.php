@@ -2,7 +2,6 @@
 
 namespace App\Services\Reservations;
 
-use App\Services\Security\NeonIdentityContext;
 use App\Exceptions\FacilityReservationException;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -13,8 +12,6 @@ use Illuminate\Support\Str;
 
 class ReservationManagementService
 {
-    public function __construct(private readonly NeonIdentityContext $identity) {}
-
     public function list(array $filters, string $actorId, bool $isAdmin): LengthAwarePaginator
     {
         $query = $this->query();
@@ -50,7 +47,6 @@ class ReservationManagementService
         $end = $this->date($data['end_at']);
         $this->assertPeriod($start, $end);
         $id = DB::transaction(function () use ($actorId, $data, $start, $end): string {
-            $this->setActor($actorId);
             $facility = DB::table('facilities')->where('id', $data['facility_id'])->lockForUpdate()->first();
             $this->assertFacilityCanHost($facility, (int)($data['participant_count'] ?? 1));
             if ($this->hasApprovedConflict($data['facility_id'], $start, $end)) {
@@ -75,7 +71,6 @@ class ReservationManagementService
     {
         $this->runWithConflictMapping(function () use ($actorId, $id, $data, $isAdmin): void {
             DB::transaction(function () use ($actorId, $id, $data, $isAdmin): void {
-                $this->setActor($actorId);
                 $reservation = DB::table('reservations')->where('id', $id)->lockForUpdate()->first();
                 if (!$reservation) throw new FacilityReservationException('Reservation not found.', 404);
                 if (!$isAdmin && $reservation->requester_id !== $actorId) throw new FacilityReservationException('You may only modify your own reservations.', 403);
@@ -108,7 +103,6 @@ class ReservationManagementService
     {
         $this->runWithConflictMapping(function () use ($actorId, $id, $decision, $remarks): void {
             DB::transaction(function () use ($actorId, $id, $decision, $remarks): void {
-                $this->setActor($actorId);
                 $reservation = DB::table('reservations')->where('id', $id)->lockForUpdate()->first();
                 if (!$reservation) throw new FacilityReservationException('Reservation not found.', 404);
                 if ($reservation->status !== 'pending') throw new FacilityReservationException('Only pending reservations can be approved or rejected.', 409);
@@ -136,7 +130,6 @@ class ReservationManagementService
     public function cancel(string $actorId, string $id, string $reason, bool $isAdmin): array
     {
         DB::transaction(function () use ($actorId, $id, $reason, $isAdmin): void {
-            $this->setActor($actorId);
             $reservation = DB::table('reservations')->where('id', $id)->lockForUpdate()->first();
             if (!$reservation) throw new FacilityReservationException('Reservation not found.', 404);
             if (!$isAdmin && $reservation->requester_id !== $actorId) throw new FacilityReservationException('You may only cancel your own reservations.', 403);
@@ -198,10 +191,6 @@ class ReservationManagementService
         return $query->exists();
     }
 
-    private function setActor(string $actorId): void
-    {
-        $this->identity->set($actorId);
-    }
 
     private function activity(string $actorId, string $recordId, string $action, array $metadata): void
     {
