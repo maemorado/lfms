@@ -123,11 +123,11 @@ final class NeonBorrowingService
         $this->uuid($transactionId);
 
         $rows = DB::table('return_transactions as rt')
-            ->join('profiles as p', 'p.id', '=', 'rt.received_by')
+            ->leftJoin('profiles as p', 'p.id', '=', 'rt.received_by')
             ->where('rt.transaction_id', $transactionId)
             ->orderByDesc('rt.returned_at')
             ->select('rt.*')
-            ->selectRaw("jsonb_build_object('id',p.id,'full_name',p.full_name,'email',p.email) AS profiles")
+            ->selectRaw("CASE WHEN p.id IS NULL THEN NULL ELSE jsonb_build_object('id',p.id,'full_name',p.full_name,'email',p.email) END AS profiles")
             ->selectRaw('(' . $this->returnItemsSubquery() . ') AS return_transaction_items')
             ->get();
 
@@ -146,7 +146,7 @@ final class NeonBorrowingService
     private function requestQuery(): Builder
     {
         return DB::table('borrow_requests as br')
-            ->join('profiles as p', 'p.id', '=', 'br.borrower_id')
+            ->leftJoin('profiles as p', 'p.id', '=', 'br.borrower_id')
             ->select('br.*')
             ->selectRaw("jsonb_build_object('id',p.id,'full_name',p.full_name,'email',p.email,'employee_id',p.employee_id) AS profiles")
             ->selectRaw('(' . $this->requestItemsSubquery() . ') AS borrow_request_items');
@@ -161,7 +161,7 @@ final class NeonBorrowingService
             ->selectRaw("jsonb_build_object(
                 'id',br.id,'borrower_id',br.borrower_id,'status',br.status,
                 'expected_return_at',br.expected_return_at,'requested_at',br.requested_at,'remarks',br.remarks,
-                'profiles',jsonb_build_object('id',p.id,'full_name',p.full_name,'email',p.email,'employee_id',p.employee_id)
+                'profiles',CASE WHEN p.id IS NULL THEN NULL ELSE jsonb_build_object('id',p.id,'full_name',p.full_name,'email',p.email,'employee_id',p.employee_id) END
             ) AS borrow_requests")
             ->selectRaw('(' . $this->transactionItemsSubquery() . ') AS borrow_transaction_items');
     }
@@ -173,7 +173,7 @@ final class NeonBorrowingService
             'item_id', bri.item_id,
             'quantity', bri.quantity,
             'remarks', bri.remarks,
-            'inventory_items', jsonb_build_object(
+            'inventory_items', CASE WHEN i.id IS NULL THEN NULL ELSE jsonb_build_object(
                 'id', i.id,
                 'name', i.name,
                 'item_code', i.item_code,
@@ -186,10 +186,10 @@ final class NeonBorrowingService
                     FROM public.equipment_assets ea
                     WHERE ea.item_id = i.id
                 ), '[]'::jsonb)
-            )
+            ) END
         ) ORDER BY bri.id), '[]'::jsonb)
         FROM public.borrow_request_items bri
-        JOIN public.inventory_items i ON i.id = bri.item_id
+        LEFT JOIN public.inventory_items i ON i.id = bri.item_id
         WHERE bri.borrow_request_id = br.id";
     }
 
@@ -200,7 +200,7 @@ final class NeonBorrowingService
             'released_by', bt.released_by,
             'released_at', bt.released_at,
             'remarks', bt.remarks,
-            'profiles', jsonb_build_object('id', rp.id, 'full_name', rp.full_name, 'email', rp.email),
+            'profiles', CASE WHEN rp.id IS NULL THEN NULL ELSE jsonb_build_object('id', rp.id, 'full_name', rp.full_name, 'email', rp.email) END,
             'borrow_transaction_items', coalesce((
                 SELECT jsonb_agg(jsonb_build_object(
                     'id', bti.id,
@@ -208,17 +208,17 @@ final class NeonBorrowingService
                     'asset_id', bti.asset_id,
                     'quantity', bti.quantity,
                     'location_id', bti.location_id,
-                    'inventory_items', jsonb_build_object('id', i.id, 'name', i.name, 'item_code', i.item_code, 'item_type', i.item_type, 'unit', i.unit),
+                    'inventory_items', CASE WHEN i.id IS NULL THEN NULL ELSE jsonb_build_object('id', i.id, 'name', i.name, 'item_code', i.item_code, 'item_type', i.item_type, 'unit', i.unit) END,
                     'equipment_assets', CASE WHEN ea.id IS NULL THEN NULL ELSE jsonb_build_object('id', ea.id, 'asset_tag', ea.asset_tag, 'condition', ea.condition, 'status', ea.status) END
                 ) ORDER BY bti.id)
                 FROM public.borrow_transaction_items bti
-                JOIN public.inventory_items i ON i.id = bti.item_id
+                LEFT JOIN public.inventory_items i ON i.id = bti.item_id
                 LEFT JOIN public.equipment_assets ea ON ea.id = bti.asset_id
                 WHERE bti.transaction_id = bt.id
             ), '[]'::jsonb)
         ) ORDER BY bt.released_at), '[]'::jsonb)
         FROM public.borrow_transactions bt
-        JOIN public.profiles rp ON rp.id = bt.released_by
+        LEFT JOIN public.profiles rp ON rp.id = bt.released_by
         WHERE bt.borrow_request_id = br.id";
     }
 
@@ -234,7 +234,7 @@ final class NeonBorrowingService
             'equipment_assets', CASE WHEN ea.id IS NULL THEN NULL ELSE jsonb_build_object('id', ea.id, 'asset_tag', ea.asset_tag, 'condition', ea.condition, 'status', ea.status) END
         ) ORDER BY bti.id), '[]'::jsonb)
         FROM public.borrow_transaction_items bti
-        JOIN public.inventory_items i ON i.id = bti.item_id
+        LEFT JOIN public.inventory_items i ON i.id = bti.item_id
         LEFT JOIN public.equipment_assets ea ON ea.id = bti.asset_id
         WHERE bti.transaction_id = bt.id";
     }
@@ -248,10 +248,10 @@ final class NeonBorrowingService
             'quantity', rti.quantity,
             'condition', rti.condition,
             'remarks', rti.remarks,
-            'inventory_items', jsonb_build_object('id', i.id, 'name', i.name, 'item_code', i.item_code, 'unit', i.unit)
+            'inventory_items', CASE WHEN i.id IS NULL THEN NULL ELSE jsonb_build_object('id', i.id, 'name', i.name, 'item_code', i.item_code, 'unit', i.unit) END
         ) ORDER BY rti.id), '[]'::jsonb)
         FROM public.return_transaction_items rti
-        JOIN public.inventory_items i ON i.id = rti.item_id
+        LEFT JOIN public.inventory_items i ON i.id = rti.item_id
         WHERE rti.return_id = rt.id";
     }
 
