@@ -42,7 +42,7 @@ final class SupabasePrivateStorageServiceTest extends TestCase
 
     public function test_download_returns_only_an_allowlisted_mime_type(): void
     {
-        Http::fake(['*' => Http::response('%PDF evidence', 200, ['Content-Type' => 'application/pdf']));
+        Http::fake(['*' => Http::response('%PDF evidence', 200, ['Content-Type' => 'application/pdf'])]);
 
         $result = app(SupabasePrivateStorageService::class)->download(
             'incidents/00000000-0000-4000-8000-000000000001/evidence.pdf',
