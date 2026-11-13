@@ -25,4 +25,10 @@ final class BorrowingApiTest extends TestCase {
   $this->expectException(\App\Exceptions\BorrowingException::class);
   app(SupabaseBorrowingService::class)->requests('caller-jwt',['page'=>1,'per_page'=>20,'status'=>null,'search'=>null]);
  }
+ public function test_return_history_query_includes_equipment_asset_identity():void{
+  Http::fake(['https://example.supabase.co/rest/v1/return_transactions*'=>Http::response([['id'=>'44444444-4444-4444-8444-444444444444','return_transaction_items'=>[['item_id'=>'55555555-5555-4555-8555-555555555555','asset_id'=>'66666666-6666-4666-8666-666666666666','equipment_assets'=>['id'=>'66666666-6666-4666-8666-666666666666','asset_tag'=>'EQ-001']]]]],200)]);
+  $rows=app(SupabaseBorrowingService::class)->returns('caller-jwt','77777777-7777-4777-8777-777777777777');
+  $this->assertSame('EQ-001',$rows[0]['return_transaction_items'][0]['equipment_assets']['asset_tag']);
+  Http::assertSent(fn($request)=>str_contains($request->url(),'equipment_assets'));
+ }
 }
