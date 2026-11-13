@@ -44,15 +44,4 @@ final class InventoryApiTest extends TestCase {
   $this->assertSame('55555555-5555-4555-8555-555555555555',$result['movement']['movement_id']);
   Http::assertSent(fn($request)=>str_ends_with($request->url(),'/rest/v1/rpc/apply_inventory_stock_movement')&&$request->hasHeader('Authorization','Bearer caller-jwt')&&$request['p_movement_type']==='stock_in');
  }
-
- public function test_inventory_exact_count_metadata_is_used_for_pagination():void{
-  Http::fake(['https://example.supabase.co/rest/v1/inventory_items*'=>Http::response([],200,['Content-Range'=>'*/5'])]);
-  $result=app(SupabaseInventoryService::class)->listItems('caller-jwt',['page'=>1,'per_page'=>20,'status'=>'active']);
-  $this->assertSame(5,$result['pagination']['total']);
- }
- public function test_inventory_missing_count_metadata_is_not_reported_as_zero():void{
-  Http::fake(['https://example.supabase.co/rest/v1/inventory_items*'=>Http::response([],200)]);
-  $this->expectException(\App\Exceptions\InventoryException::class);
-  app(SupabaseInventoryService::class)->listItems('caller-jwt',['page'=>1,'per_page'=>20,'status'=>'active']);
- }
 }

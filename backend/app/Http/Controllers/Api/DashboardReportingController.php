@@ -18,14 +18,8 @@ final class DashboardReportingController extends Controller
     private function actor(Request $request): string { return (string) data_get($request->attributes->get('supabase_user'), 'id', ''); }
     private function isAdmin(Request $request): bool
     {
-        $roles = $request->attributes->get('lfms_authorization')['roles'] ?? [];
-        return is_array($roles) && in_array('admin', $roles, true);
-    }
-
-    private function can(Request $request, string $permission): bool
-    {
         $permissions = $request->attributes->get('lfms_authorization')['permissions'] ?? [];
-        return is_array($permissions) && in_array($permission, $permissions, true);
+        return is_array($permissions) && in_array('reports.view', $permissions, true);
     }
 
     /**
@@ -57,7 +51,7 @@ final class DashboardReportingController extends Controller
 
     public function report(Request $request): JsonResponse
     {
-        abort_unless($this->can($request, 'reports.view'), 403, 'Administrative reporting access is required.');
+        abort_unless($this->isAdmin($request), 403, 'Administrative reporting access is required.');
         $options = $request->validate([
             'report' => ['required', Rule::in(['reservations','facility-utilization','inventory','inventory-movements','borrowings','returns','maintenance','incidents'])],
             'from' => ['nullable', 'date'],
@@ -90,7 +84,7 @@ final class DashboardReportingController extends Controller
 
     public function audit(Request $request): JsonResponse
     {
-        abort_unless($this->can($request, 'audit.view'), 403, 'Administrative audit access is required.');
+        abort_unless($this->isAdmin($request), 403, 'Administrative audit access is required.');
         $options = $request->validate([
             'user_id' => ['nullable', 'uuid'],
             'module' => ['nullable', 'string', 'max:80'],
