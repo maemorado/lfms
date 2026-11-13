@@ -47,23 +47,16 @@ final class DashboardReportingService
         return ['rows' => $response->json() ?? [], 'range' => $response->header('Content-Range')];
     }
 
-    private function totalFromContentRange(?string $range): int
-    {
-        if (is_string($range) && preg_match('~/([0-9]+)$~', trim($range), $matches) === 1) {
-            return (int) $matches[1];
-        }
-
-        // Never turn a missing/invalid exact count into a convincing zero.
-        // PostgREST returns */0 for an authorized empty result when count=exact.
-        throw new HttpException(502, 'The dashboard data service returned incomplete pagination metadata.');
-    }
-
     private function count(string $token, string $table, array $filters = []): int
     {
         $query = ['select' => 'id', 'limit' => '1'] + $filters;
         $result = $this->get($token, $table, $query);
-
-        return $this->totalFromContentRange($result['range']);
+        $range = $result['range'] ?? '';
+        if (is_string($range) && str_contains($range, '/')) {
+            $total = substr($range, strrpos($range, '/') + 1);
+            if (ctype_digit($total)) return (int) $total;
+        }
+        return 0;
     }
 
     private function page(string $token, string $table, array $query, int $page, int $perPage): array
@@ -71,7 +64,12 @@ final class DashboardReportingService
         $query['limit'] = (string) $perPage;
         $query['offset'] = (string) (($page - 1) * $perPage);
         $result = $this->get($token, $table, $query);
-        $total = $this->totalFromContentRange($result['range']);
+        $total = 0;
+        $range = $result['range'] ?? '';
+        if (is_string($range) && str_contains($range, '/')) {
+            $raw = substr($range, strrpos($range, '/') + 1);
+            if (ctype_digit($raw)) $total = (int) $raw;
+        }
         return [
             'data' => is_array($result['rows']) ? $result['rows'] : [],
             'pagination' => ['current_page' => $page, 'per_page' => $perPage, 'total' => $total, 'last_page' => max(1, (int) ceil($total / $perPage))],

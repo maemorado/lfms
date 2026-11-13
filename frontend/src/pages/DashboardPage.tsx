@@ -39,30 +39,10 @@ type NotificationSummary = {
   created_at: string;
 };
 
-type ActivitySummary = {
-  id: string;
-  action: string;
-  module: string;
-  record_id: string | null;
-  created_at: string;
-  profiles?: { full_name?: string | null } | null;
-};
-
-type AnnouncementSummary = {
-  id: string;
-  title: string;
-  content: string;
-  category: string | null;
-  published_at: string;
-  expires_at: string | null;
-};
-
 type DashboardResponse = {
   metrics?: Record<string, Record<string, number>>;
   current_reservations?: ReservationSummary[];
   upcoming_reservations?: ReservationSummary[];
-  recent_activity?: ActivitySummary[];
-  announcements?: AnnouncementSummary[];
   recent_notifications?: NotificationSummary[];
 };
 
@@ -261,45 +241,6 @@ export default function DashboardPage() {
       <section className="grid gap-4 xl:grid-cols-2">
         <ReservationList title="Happening now" description="Reservations currently in progress" items={dashboard?.current_reservations ?? []} emptyMessage="There are no current reservations." />
         <ReservationList title="Coming up" description="Your next scheduled reservations" items={dashboard?.upcoming_reservations ?? []} emptyMessage="There are no upcoming reservations." upcoming />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div><h2 className="text-base font-semibold tracking-tight">Recent activity</h2><p className="mt-1 text-sm text-muted-foreground">Latest recorded actions in your authorized workspace scope.</p></div>
-            <Link to="/activity" className="shrink-0 text-sm font-semibold hover:underline">View history</Link>
-          </div>
-          {dashboard?.recent_activity?.length ? (
-            <ul className="mt-4 divide-y divide-border">
-              {dashboard.recent_activity.map((item) => (
-                <li key={item.id} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm font-medium">{item.action.replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.profiles?.full_name || "Workspace member"} · {item.module.replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.created_at)}</p>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-7 text-center text-sm text-muted-foreground">No recent activity is available.</p>}
-        </article>
-
-        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div><h2 className="text-base font-semibold tracking-tight">Announcements</h2><p className="mt-1 text-sm text-muted-foreground">Current published updates.</p></div>
-            <Link to="/announcements" className="shrink-0 text-sm font-semibold hover:underline">View all</Link>
-          </div>
-          {dashboard?.announcements?.length ? (
-            <ul className="mt-4 space-y-3">
-              {dashboard.announcements.map((item) => (
-                <li key={item.id} className="rounded-xl bg-muted/50 p-4">
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  {item.category && <p className="mt-1 text-xs capitalize text-muted-foreground">{item.category.replaceAll("_", " ")}</p>}
-                  <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">{item.content}</p>
-                  <p className="mt-2 text-[11px] text-muted-foreground">Published {formatDateTime(item.published_at)}</p>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-7 text-center text-sm text-muted-foreground">No current announcements.</p>}
-        </article>
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
