@@ -9,7 +9,7 @@ export type BorrowingRecord={id:string;borrow_request_id:string;released_by:stri
 export type ReturnRecord={id:string;transaction_id:string;received_by:string;returned_at:string;remarks:string|null;profiles?:{full_name:string;email:string};return_transaction_items:{id:string;item_id:string;asset_id:string|null;quantity:number;condition:string;remarks:string|null;inventory_items?:{name:string;item_code:string;unit:string};equipment_assets?:{id:string;asset_tag:string;serial_number:string|null}|null}[]};
 async function get<T>(url:string,params?:Record<string,unknown>){return (await api.get<Envelope<T>>(url,{params})).data;}
 async function post<T>(url:string,body:unknown){return (await api.post<Envelope<T>>(url,body)).data;}
-export async function listBorrowable(params:Record<string,unknown>={}){return (await get<{items:BorrowableItem[]}>("/v1/borrowing/inventory",params)).data.items;}
+export async function listBorrowable(params:Record<string,unknown>={}){const r=await get<{items:BorrowableItem[]}>("/v1/borrowing/inventory",params);return {items:r.data.items,pagination:r.meta?.pagination};}
 export async function listBorrowRequests(params:Record<string,unknown>={}){const r=await get<{requests:BorrowRequest[]}>("/v1/borrowing/requests",params);return {requests:r.data.requests,pagination:r.meta?.pagination};}
 export async function getBorrowRequest(id:string){return (await get<{request:BorrowRequest}>("/v1/borrowing/requests/"+id)).data.request;}
 export async function createBorrowRequest(input:unknown){return (await post<{request:{id:string;status:string}}>("/v1/borrowing/requests",input)).data.request;}
