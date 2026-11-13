@@ -37,9 +37,10 @@ class SupabaseInventoryService
 
     private function uuid(string $id): void { if(!Str::isUuid($id)) throw new InventoryException('The supplied inventory identifier is invalid.',422); }
     private function countFromRange(?string $range): int {
-        if(!is_string($range)||!str_contains($range,'/')) return 0;
-        $raw=substr($range,strrpos($range,'/')+1);
-        return ctype_digit($raw)?(int)$raw:0;
+        if (!is_string($range) || preg_match('/^(?:\d+-\d+|\*)\/(\d+)$/', trim($range), $matches) !== 1) {
+            throw new InventoryException('The inventory data service returned incomplete pagination metadata.', 502);
+        }
+        return (int) $matches[1];
     }
 
     public function listItems(string $token,array $o): array
