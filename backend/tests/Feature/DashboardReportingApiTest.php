@@ -132,7 +132,7 @@ final class DashboardReportingApiTest extends TestCase
 
     public function test_admin_role_controls_global_dashboard_scope_without_requiring_reports_permission(): void
     {
-        $this->fakeSupabase('admin', ['profile.view_own']);
+        $this->fakeSupabase('admin', ['profile.view_own', 'audit.view', 'facilities.view', 'facilities.manage', 'reservations.view', 'reservations.manage', 'inventory.view', 'inventory.manage', 'borrowing.view', 'borrowing.manage', 'maintenance.view', 'maintenance.manage', 'incidents.view', 'incidents.manage', 'notifications.view_own', 'notifications.manage']);
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
@@ -156,7 +156,7 @@ final class DashboardReportingApiTest extends TestCase
 
     public function test_staff_with_reports_permission_remains_scoped_to_their_own_records(): void
     {
-        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reports.view'], self::STAFF_ID);
+        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reports.view', 'reservations.view', 'facilities.view', 'inventory.view', 'borrowing.view', 'maintenance.view', 'incidents.view', 'notifications.view_own'], self::STAFF_ID);
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
@@ -229,7 +229,7 @@ final class DashboardReportingApiTest extends TestCase
             'created_at' => '2026-11-13T09:00:00Z',
         ]];
 
-        $this->fakeSupabase('staff_sa', ['profile.view_own'], self::STAFF_ID, [
+        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reservations.view', 'facilities.view', 'inventory.view', 'borrowing.view', 'maintenance.view', 'incidents.view', 'notifications.view_own'], self::STAFF_ID, [
             'activity_logs' => $activity,
             'announcements' => $announcements,
             'reservations' => $reservations,
@@ -248,7 +248,7 @@ final class DashboardReportingApiTest extends TestCase
 
     public function test_dashboard_does_not_report_zero_when_postgrest_omits_exact_count_metadata(): void
     {
-        $this->fakeSupabase('admin', ['profile.view_own'], self::ADMIN_ID, [], 'facilities');
+        $this->fakeSupabase('admin', ['profile.view_own', 'audit.view', 'facilities.view', 'facilities.manage', 'reservations.view', 'reservations.manage', 'inventory.view', 'inventory.manage', 'borrowing.view', 'borrowing.manage', 'maintenance.view', 'maintenance.manage', 'incidents.view', 'incidents.manage', 'notifications.view_own', 'notifications.manage'], self::ADMIN_ID, [], 'facilities');
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
@@ -268,7 +268,7 @@ final class DashboardReportingApiTest extends TestCase
 
     public function test_report_and_audit_permissions_are_checked_independently(): void
     {
-        $this->fakeSupabase('admin', ['profile.view_own']);
+        $this->fakeSupabase('admin', ['profile.view_own', 'facilities.view', 'facilities.manage', 'reservations.view', 'reservations.manage', 'inventory.view', 'inventory.manage', 'borrowing.view', 'borrowing.manage', 'maintenance.view', 'maintenance.manage', 'incidents.view', 'incidents.manage', 'notifications.view_own', 'notifications.manage']);
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/reports?report=reservations')
