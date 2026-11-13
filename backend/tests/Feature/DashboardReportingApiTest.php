@@ -22,19 +22,26 @@ final class DashboardReportingApiTest extends TestCase
             'supabase.publishable_key' => 'test-publishable-key',
             'supabase.auth_user_timeout' => 10,
         ]);
+    }
 
-        Http::fake(function (ClientRequest $request) {
+    /**
+     * Register exactly one HTTP fake per test. Re-faking after setUp can leave
+     * earlier callbacks active, making role-specific fixtures nondeterministic.
+     */
+    private function fakeSupabase(string $role = 'admin', ?string $missingCountTable = null): void
+    {
+        Http::fake(function (ClientRequest $request) use ($role, $missingCountTable) {
             $url = $request->url();
 
             if (str_contains($url, '/auth/v1/user')) {
-                return Http::response(['id' => self::ADMIN_ID, 'email' => 'admin@example.test'], 200);
+                return Http::response(['id' => self::ADMIN_ID, 'email' => $role.'@example.test'], 200);
             }
 
             if (str_contains($url, '/rest/v1/profiles')) {
                 return Http::response([[
                     'id' => self::ADMIN_ID,
-                    'full_name' => 'Test Admin',
-                    'email' => 'admin@example.test',
+                    'full_name' => $role === 'admin' ? 'Test Admin' : 'Test Staff',
+                    'email' => $role.'@example.test',
                     'employee_id' => null,
                     'status' => 'active',
                 ]], 200);
@@ -43,7 +50,7 @@ final class DashboardReportingApiTest extends TestCase
             if (str_contains($url, '/rest/v1/user_roles')) {
                 return Http::response([[
                     'role_id' => self::ROLE_ID,
-                    'roles' => ['name' => 'admin'],
+                    'roles' => ['name' => $role],
                 ]], 200);
             }
 
@@ -52,6 +59,10 @@ final class DashboardReportingApiTest extends TestCase
                     fn (string $name) => ['permissions' => ['name' => $name]],
                     ['reports.view', 'profile.view_own', 'audit.view'],
                 ), 200);
+            }
+
+            if ($missingCountTable !== null && str_contains($url, '/rest/v1/'.$missingCountTable)) {
+                return Http::response([], 200);
             }
 
             return Http::response([], 200, ['Content-Range' => '*/0']);
@@ -66,6 +77,7 @@ final class DashboardReportingApiTest extends TestCase
 
     public function test_date_only_bounds_cover_the_entire_selected_day_for_reports_activity_and_audit(): void
     {
+        $this->fakeSupabase();
         $date = '2026-11-08';
         $from = CarbonImmutable::parse($date, (string) config('app.timezone'))
             ->startOfDay()->format('Y-m-d\\TH:i:s.uP');
@@ -99,8 +111,38 @@ final class DashboardReportingApiTest extends TestCase
         );
     }
 
+    public function test_dashboard_uses_assigned_admin_role_for_global_data_scope_not_reports_permission(): void
+    {
+        $this->fakeSupabase('staff_sa');
+
+        $this->withToken(self::TOKEN)
+            ->getJson('/api/v1/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.role', 'staff_sa');
+
+        Http::assertSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/activity_logs')
+            && ($this->parseQuery($request)['user_id'] ?? null) === 'eq.'.self::ADMIN_ID
+        );
+        Http::assertSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/reservations')
+            && ($this->parseQuery($request)['requester_id'] ?? null) === 'eq.'.self::ADMIN_ID
+        );
+    }
+
+    public function test_dashboard_does_not_report_zero_when_postgrest_omits_exact_count_metadata(): void
+    {
+        $this->fakeSupabase('admin', 'facilities');
+
+        $this->withToken(self::TOKEN)
+            ->getJson('/api/v1/dashboard')
+            ->assertStatus(502)
+            ->assertJsonPath('success', false);
+    }
+
     public function test_dashboard_published_announcement_metric_excludes_expired_announcements(): void
     {
+        $this->fakeSupabase();
         app(DashboardReportingService::class)->dashboard(self::TOKEN, self::ADMIN_ID, true);
 
         Http::assertSent(fn (ClientRequest $request) =>

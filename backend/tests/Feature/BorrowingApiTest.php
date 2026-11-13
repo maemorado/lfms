@@ -14,4 +14,21 @@ final class BorrowingApiTest extends TestCase {
  public function test_staff_cannot_review_borrowing_requests():void{$this->fakeUser(self::STAFF,'staff_sa',['borrowing.view','borrowing.request']);$service=Mockery::mock(SupabaseBorrowingService::class);$service->shouldNotReceive('reviewRequest');$this->app->instance(SupabaseBorrowingService::class,$service);$this->withToken('staff-token')->postJson('/api/v1/borrowing/requests/44444444-4444-4444-8444-444444444444/review',['decision'=>'approved'])->assertForbidden();}
  public function test_admin_can_review_a_pending_request():void{$this->fakeUser(self::ADMIN,'admin',['borrowing.view','borrowing.manage']);$service=Mockery::mock(SupabaseBorrowingService::class);$service->shouldReceive('reviewRequest')->once()->with('admin-token','44444444-4444-4444-8444-444444444444',Mockery::on(fn($d)=>$d['decision']==='approved'))->andReturn(['id'=>'44444444-4444-4444-8444-444444444444','status'=>'approved']);$this->app->instance(SupabaseBorrowingService::class,$service);$this->withToken('admin-token')->postJson('/api/v1/borrowing/requests/44444444-4444-4444-8444-444444444444/review',['decision'=>'approved'])->assertOk()->assertJsonPath('data.request.status','approved');}
  public function test_return_processing_requires_admin_permissions():void{$this->fakeUser(self::STAFF,'staff_sa',['borrowing.view','borrowing.return']);$service=Mockery::mock(SupabaseBorrowingService::class);$service->shouldNotReceive('processReturn');$this->app->instance(SupabaseBorrowingService::class,$service);$this->withToken('staff-token')->postJson('/api/v1/borrowing/records/44444444-4444-4444-8444-444444444444/returns',['items'=>[['item_id'=>'55555555-5555-4555-8555-555555555555','quantity'=>1,'condition'=>'good']]])->assertForbidden();}
+
+ public function test_borrowing_exact_count_metadata_is_used_for_pagination():void{
+  Http::fake(['https://example.supabase.co/rest/v1/borrow_requests*'=>Http::response([],200,['Content-Range'=>'*/7'])]);
+  $result=app(SupabaseBorrowingService::class)->requests('caller-jwt',['page'=>1,'per_page'=>20,'status'=>null,'search'=>null]);
+  $this->assertSame(7,$result['pagination']['total']);
+ }
+ public function test_borrowing_missing_count_metadata_is_not_reported_as_zero():void{
+  Http::fake(['https://example.supabase.co/rest/v1/borrow_requests*'=>Http::response([],200)]);
+  $this->expectException(\App\Exceptions\BorrowingException::class);
+  app(SupabaseBorrowingService::class)->requests('caller-jwt',['page'=>1,'per_page'=>20,'status'=>null,'search'=>null]);
+ }
+ public function test_return_history_query_includes_equipment_asset_identity():void{
+  Http::fake(['https://example.supabase.co/rest/v1/return_transactions*'=>Http::response([['id'=>'44444444-4444-4444-8444-444444444444','return_transaction_items'=>[['item_id'=>'55555555-5555-4555-8555-555555555555','asset_id'=>'66666666-6666-4666-8666-666666666666','equipment_assets'=>['id'=>'66666666-6666-4666-8666-666666666666','asset_tag'=>'EQ-001']]]]],200)]);
+  $rows=app(SupabaseBorrowingService::class)->returns('caller-jwt','77777777-7777-4777-8777-777777777777');
+  $this->assertSame('EQ-001',$rows[0]['return_transaction_items'][0]['equipment_assets']['asset_tag']);
+  Http::assertSent(fn($request)=>str_contains($request->url(),'equipment_assets'));
+ }
 }
