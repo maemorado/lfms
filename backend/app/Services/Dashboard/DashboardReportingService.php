@@ -63,7 +63,7 @@ final class DashboardReportingService
     }
 
     /**
-     * PostgREST exact counts use ranges such as 0-0/42 or */0. A missing,
+     * PostgREST exact counts use ranges such as 0-0/42 or a wildcard zero range. A missing,
      * wildcard, or malformed total is an upstream data-integrity failure,
      * never a legitimate zero.
      */
