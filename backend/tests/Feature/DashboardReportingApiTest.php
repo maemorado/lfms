@@ -243,7 +243,11 @@ final class DashboardReportingApiTest extends TestCase
             ->assertJsonPath('data.recent_activity.0.profiles.full_name', 'Test Staff')
             ->assertJsonPath('data.announcements.0.title', 'Laboratory update')
             ->assertJsonPath('data.current_reservations.0.facilities.name', 'Chemistry Lab')
-            ->assertJsonPath('data.recent_notifications.0.title', 'Reservation update');
+            ->assertJsonPath('data.recent_notifications.0.title', 'Reservation update')
+            ->assertJsonPath('data.metrics.reservations.total', 1)
+            ->assertJsonPath('data.metrics.borrowing.requests', 0)
+            ->assertJsonPath('data.metrics.notifications.unread', 1)
+            ->assertJsonPath('data.metrics.announcements.published', 1);
     }
 
     public function test_dashboard_does_not_report_zero_when_postgrest_omits_exact_count_metadata(): void
