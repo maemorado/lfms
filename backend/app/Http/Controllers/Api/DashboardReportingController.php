@@ -50,7 +50,7 @@ final class DashboardReportingController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         return ApiResponse::success(
-            $this->service->dashboard($this->token($request), $this->actor($request), $this->isAdmin($request)),
+            $this->service->dashboard($this->token($request), $this->actor($request), $this->isAdmin($request), $this->can($request, 'inventory.view')),
             'Dashboard data retrieved successfully.',
         );
     }
