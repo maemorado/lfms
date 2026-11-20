@@ -15,17 +15,9 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>; signOut: () => Promise<void>;
   refreshIdentity: () => Promise<AuthIdentity>;
 };
-type MeResponse = { success: boolean; data?: { user?: AuthIdentity | null } };
 type AccessResponse = { success: boolean; data?: { profile: LfmsProfile; roles: string[]; permissions: string[] } };
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Unable to verify your LFMS account.";
-
-async function fetchIdentity(): Promise<AuthIdentity> {
-  const response = await api.get<MeResponse>("/v1/auth/me");
-  const value = response.data?.data?.user;
-  if (!value || typeof value.id !== "string") throw new Error("The LFMS API did not return a valid identity.");
-  return { id: value.id, email: typeof value.email === "string" ? value.email : null };
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -72,35 +64,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const id = ++requestId.current;
     let active = true;
+
     if (!session) {
-      setIdentity(null); setProfile(null); setRoles([]); setPermissions([]);
-      setIdentityError(null); setIdentityStatus("idle"); setAccessStatus("idle");
+      setIdentity(null);
+      setProfile(null);
+      setRoles([]);
+      setPermissions([]);
+      setIdentityError(null);
+      setIdentityStatus("idle");
+      setAccessStatus("idle");
       return () => { active = false; };
     }
-    setIdentity(null); setIdentityError(null); setIdentityStatus("loading"); setAccessStatus("loading");
-    void fetchIdentity().then(async (next) => {
+
+    // Supabase already supplies the authenticated user identity in its local session.
+    // Use it for display and avoid a redundant /auth/me round trip.
+    const localIdentity: AuthIdentity = {
+      id: session.user.id,
+      email: session.user.email ?? null,
+    };
+    setIdentity(localIdentity);
+    setIdentityError(null);
+    setIdentityStatus("ready");
+
+    void loadAccess().catch((error: unknown) => {
       if (!active || requestId.current !== id) return;
-      setIdentity(next); setIdentityStatus("ready");
-      try { await loadAccess(); } catch { if (active && requestId.current === id) setAccessStatus("error"); }
-    }).catch((error: unknown) => {
-      if (!active || requestId.current !== id) return;
-      setIdentity(null); setIdentityError(errorMessage(error)); setIdentityStatus("error"); setAccessStatus("error");
+      setAccessStatus("error");
+      setIdentityError(errorMessage(error));
     });
+
     return () => { active = false; };
-  }, [session?.access_token, session, loadAccess]);
+  }, [session?.access_token, session?.user.id, session?.user.email, loadAccess]);
 
   const refreshIdentity = useCallback(async () => {
     const id = ++requestId.current;
-    setIdentity(null); setIdentityError(null); setIdentityStatus("loading");
+    if (!session?.user?.id) throw new Error("No authenticated session is available.");
+    const next: AuthIdentity = {
+      id: session.user.id,
+      email: session.user.email ?? null,
+    };
+    setIdentity(next);
+    setIdentityError(null);
+    setIdentityStatus("ready");
     try {
-      const next = await fetchIdentity();
-      if (requestId.current === id) { setIdentity(next); setIdentityStatus("ready"); await loadAccess(); }
+      await loadAccess();
       return next;
     } catch (error) {
-      if (requestId.current === id) { setIdentityError(errorMessage(error)); setIdentityStatus("error"); }
+      if (requestId.current === id) {
+        setAccessStatus("error");
+        setIdentityError(errorMessage(error));
+      }
       throw error;
     }
-  }, [loadAccess]);
+  }, [loadAccess, session?.user.id, session?.user.email]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error("Supabase is not configured.");

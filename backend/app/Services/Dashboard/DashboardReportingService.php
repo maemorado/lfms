@@ -102,127 +102,25 @@ final class DashboardReportingService
         ];
     }
 
-    public function dashboard(string $token, string $userId, bool $admin): array
+    public function dashboard(string $token, string $userId, bool $admin, bool $canViewInventory): array
     {
         $now = now()->toIso8601String();
 
-        // Shared widgets are explicitly scoped to the authenticated user or
-        // to currently published announcements. RLS remains authoritative.
-        $metrics = [
-            'notifications' => [
-                'unread' => $this->count($token, 'notifications', [
-                    'user_id' => 'eq.'.$userId,
-                    'read_at' => 'is.null',
-                ]),
-            ],
-            'announcements' => [
-                'published' => $this->count($token, 'announcements', [
-                    'status' => 'eq.published',
-                    'published_at' => 'lte.'.$now,
-                    'or' => '(expires_at.is.null,expires_at.gt.'.$now.')',
-                ]),
-            ],
-        ];
-
-        if ($admin) {
-            // Only an assigned admin role receives global operational metrics.
-            $metrics = [
-                'facilities' => [
-                    'total' => $this->count($token, 'facilities'),
-                    'available' => $this->count($token, 'facilities', ['status' => 'eq.available']),
-                    'unavailable' => $this->count($token, 'facilities', ['status' => 'in.(unavailable,maintenance,inactive)']),
-                ],
-                'reservations' => [
-                    'pending' => $this->count($token, 'reservations', ['status' => 'eq.pending']),
-                    'approved' => $this->count($token, 'reservations', ['status' => 'eq.approved']),
-                    'rejected' => $this->count($token, 'reservations', ['status' => 'eq.rejected']),
-                    'upcoming' => $this->count($token, 'reservations', [
-                        'start_at' => 'gte.'.$now,
-                        'status' => 'in.(pending,approved)',
-                    ]),
-                ],
-                'inventory' => [
-                    'total' => $this->count($token, 'inventory_items', ['status' => 'eq.active']),
-                ],
-                'borrowing' => [
-                    'pending' => $this->count($token, 'borrow_requests', ['status' => 'eq.pending']),
-                    'active' => $this->count($token, 'borrow_requests', ['status' => 'in.(approved,partially_returned)']),
-                    'overdue' => $this->count($token, 'borrow_requests', [
-                        'status' => 'in.(approved,partially_returned)',
-                        'expected_return_at' => 'lt.'.$now,
-                    ]),
-                ],
-                'maintenance' => [
-                    'pending' => $this->count($token, 'maintenance_requests', ['status' => 'eq.pending']),
-                    'ongoing' => $this->count($token, 'maintenance_requests', ['status' => 'in.(approved,in_progress,on_hold)']),
-                ],
-                'incidents' => [
-                    'submitted' => $this->count($token, 'incident_reports'),
-                    'unresolved' => $this->count($token, 'incident_reports', ['status' => 'in.(open,under_review)']),
-                ],
-                'notifications' => $metrics['notifications'],
-                'announcements' => $metrics['announcements'],
-            ];
-        } else {
-            // Staff requests are filtered before they reach PostgREST. Do not
-            // issue global count requests and then overwrite their results:
-            // those requests can fail under RLS and are unnecessary.
-            $reservationScope = ['requester_id' => 'eq.'.$userId];
-            $borrowingScope = ['borrower_id' => 'eq.'.$userId];
-            $maintenanceScope = ['reported_by' => 'eq.'.$userId];
-            $incidentScope = ['reported_by' => 'eq.'.$userId];
-
-            $metrics = [
-                'reservations' => [
-                    'total' => $this->count($token, 'reservations', $reservationScope),
-                    'pending' => $this->count($token, 'reservations', $reservationScope + ['status' => 'eq.pending']),
-                    'approved' => $this->count($token, 'reservations', $reservationScope + ['status' => 'eq.approved']),
-                    'rejected' => $this->count($token, 'reservations', $reservationScope + ['status' => 'eq.rejected']),
-                    'upcoming' => $this->count($token, 'reservations', $reservationScope + [
-                        'start_at' => 'gte.'.$now,
-                        'status' => 'in.(pending,approved)',
-                    ]),
-                ],
-                'borrowing' => [
-                    'requests' => $this->count($token, 'borrow_requests', $borrowingScope),
-                    'pending' => $this->count($token, 'borrow_requests', $borrowingScope + ['status' => 'eq.pending']),
-                    'active' => $this->count($token, 'borrow_requests', $borrowingScope + ['status' => 'in.(approved,partially_returned)']),
-                    'overdue' => $this->count($token, 'borrow_requests', $borrowingScope + [
-                        'status' => 'in.(approved,partially_returned)',
-                        'expected_return_at' => 'lt.'.$now,
-                    ]),
-                ],
-                'maintenance' => [
-                    'total' => $this->count($token, 'maintenance_requests', $maintenanceScope),
-                    'unresolved' => $this->count($token, 'maintenance_requests', $maintenanceScope + [
-                        'status' => 'in.(pending,approved,in_progress,on_hold)',
-                    ]),
-                ],
-                'incidents' => [
-                    'total' => $this->count($token, 'incident_reports', $incidentScope),
-                    'unresolved' => $this->count($token, 'incident_reports', $incidentScope + [
-                        'status' => 'in.(open,under_review)',
-                    ]),
-                ],
-                'notifications' => $metrics['notifications'],
-                'announcements' => $metrics['announcements'],
+        // The dashboard is intentionally limited to inventory analytics,
+        // reservation calendar entries, and currently published announcements.
+        // All requests continue to use the caller JWT so Supabase RLS remains active.
+        $metrics = [];
+        if ($canViewInventory) {
+            $activeItems = ['status' => 'eq.active'];
+            $metrics['inventory'] = [
+                'total' => $this->count($token, 'inventory_items', $activeItems),
+                'equipment' => $this->count($token, 'inventory_items', $activeItems + ['item_type' => 'eq.equipment']),
+                'consumables' => $this->count($token, 'inventory_items', $activeItems + ['item_type' => 'eq.consumable']),
             ];
         }
 
-        $activity = $this->page($token, 'activity_logs', [
-            'select' => 'id,user_id,action,module,record_id,metadata,created_at,profiles!activity_logs_user_id_fkey(id,full_name)',
-            'order' => 'created_at.desc',
-        ] + ($admin ? [] : ['user_id' => 'eq.'.$userId]), 1, 8);
-
-        $published = $this->page($token, 'announcements', [
-            'select' => 'id,title,content,category,published_at,expires_at',
-            'status' => 'eq.published',
-            'published_at' => 'lte.'.$now,
-            'or' => '(expires_at.is.null,expires_at.gt.'.$now.')',
-            'order' => 'published_at.desc',
-        ], 1, 5);
-
         $reservationScope = $admin ? [] : ['requester_id' => 'eq.'.$userId];
+
         $current = $this->page($token, 'reservations', [
             'select' => 'id,purpose,start_at,end_at,status,facilities(id,name,code)',
             'status' => 'eq.approved',
@@ -238,20 +136,20 @@ final class DashboardReportingService
             'order' => 'start_at.asc',
         ] + $reservationScope, 1, 5);
 
-        $recentNotifications = $this->page($token, 'notifications', [
-            'select' => 'id,title,message,type,read_at,created_at',
-            'user_id' => 'eq.'.$userId,
-            'order' => 'created_at.desc',
+        $published = $this->page($token, 'announcements', [
+            'select' => 'id,title,content,category,published_at,expires_at',
+            'status' => 'eq.published',
+            'published_at' => 'lte.'.$now,
+            'or' => '(expires_at.is.null,expires_at.gt.'.$now.')',
+            'order' => 'published_at.desc',
         ], 1, 5);
 
         return [
             'role' => $admin ? 'admin' : 'staff_sa',
             'metrics' => $metrics,
-            'recent_activity' => $activity['data'],
-            'announcements' => $published['data'],
             'current_reservations' => $current['data'],
             'upcoming_reservations' => $upcoming['data'],
-            'recent_notifications' => $recentNotifications['data'],
+            'announcements' => $published['data'],
         ];
     }
 
