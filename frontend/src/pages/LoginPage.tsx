@@ -85,27 +85,32 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center bg-black px-5 py-10 text-white">
-      <section className="w-full max-w-[420px] rounded-2xl border border-white/10 bg-neutral-900 p-7 shadow-2xl shadow-black/50 sm:p-8">
-        <div className="mb-6 flex items-center gap-3">
+    <main className="flex min-h-dvh items-center justify-center bg-black px-4 py-8 text-white sm:px-6">
+      <section
+        aria-labelledby="login-heading"
+        className="w-full max-w-[400px] rounded-2xl border border-neutral-800 bg-neutral-900 p-6 shadow-xl shadow-black/30 sm:p-7"
+      >
+        <header className="mb-7 flex items-center gap-3">
           <div
             aria-label="Logo placeholder"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-neutral-800 text-[9px] font-semibold tracking-[0.14em] text-neutral-400"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-neutral-700 bg-neutral-800 text-[9px] font-semibold tracking-[0.14em] text-neutral-400"
           >
             LOGO
           </div>
-          <div>
-            <p className="text-sm font-semibold tracking-[0.16em] text-white">LFMS</p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold tracking-[0.14em] text-white">LFMS</p>
             <p className="mt-0.5 text-xs text-neutral-500">Laboratory &amp; Facility Management</p>
           </div>
-        </div>
+        </header>
 
         <div className="mb-6 space-y-1.5">
-          <p className="text-sm text-neutral-400">Welcome back</p>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-white">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+            Welcome back
+          </p>
+          <h1 id="login-heading" className="text-xl font-semibold leading-snug tracking-tight text-white">
             Sign in to your account
           </h1>
-          <p className="text-sm leading-6 text-neutral-400">
+          <p className="text-sm leading-5 text-neutral-400">
             Enter your account details to access the LFMS workspace.
           </p>
         </div>
@@ -126,7 +131,6 @@ export default function LoginPage() {
                 type="email"
                 inputMode="email"
                 autoComplete="username"
-                autoFocus
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
@@ -135,7 +139,7 @@ export default function LoginPage() {
                 aria-invalid={Boolean(emailError)}
                 aria-describedby={emailError ? "email-error" : undefined}
                 placeholder="name@university.edu"
-                className={`h-11 w-full rounded-lg border bg-neutral-800 pl-10 pr-4 text-sm text-white outline-none transition-colors placeholder:text-neutral-500 focus:ring-2 focus:ring-white/10 ${emailError ? "border-red-500/70 focus:border-red-500" : "border-white/10 focus:border-white/40"}`}
+                className={`h-11 w-full rounded-lg border bg-neutral-800 pl-10 pr-3.5 text-sm text-white outline-none transition-colors placeholder:text-neutral-500 focus-visible:border-neutral-500 focus-visible:ring-2 focus-visible:ring-neutral-500/25 ${emailError ? "border-red-500/70" : "border-neutral-700"}`}
               />
             </div>
             {emailError && <p id="email-error" className="text-xs text-red-400">{emailError}</p>}
@@ -163,14 +167,14 @@ export default function LoginPage() {
                 aria-invalid={Boolean(passwordError)}
                 aria-describedby={passwordError ? "password-error" : undefined}
                 placeholder="Enter your password"
-                className={`h-11 w-full rounded-lg border bg-neutral-800 pl-10 pr-12 text-sm text-white outline-none transition-colors placeholder:text-neutral-500 focus:ring-2 focus:ring-white/10 ${passwordError ? "border-red-500/70 focus:border-red-500" : "border-white/10 focus:border-white/40"}`}
+                className={`h-11 w-full rounded-lg border bg-neutral-800 pl-10 pr-12 text-sm text-white outline-none transition-colors placeholder:text-neutral-500 focus-visible:border-neutral-500 focus-visible:ring-2 focus-visible:ring-neutral-500/25 ${passwordError ? "border-red-500/70" : "border-neutral-700"}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((visible) => !visible)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 aria-pressed={showPassword}
-                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
               >
                 {showPassword ? (
                   <EyeOff aria-hidden="true" className="h-4 w-4" />
@@ -185,7 +189,7 @@ export default function LoginPage() {
           {errorMessage && (
             <div
               role="alert"
-              className="flex gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-sm leading-5 text-red-300"
+              className="flex gap-2.5 rounded-lg border border-red-900/70 bg-red-950/40 px-3.5 py-3 text-sm leading-5 text-red-300"
             >
               <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-400" />
               <p>{errorMessage}</p>
@@ -195,7 +199,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Signing in…" : "Sign in"}
             {!isSubmitting && <ArrowRight aria-hidden="true" className="h-4 w-4" />}
@@ -208,9 +212,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 border-t border-white/10 pt-5 text-center text-xs leading-5 text-neutral-500">
+        <footer className="mt-6 border-t border-neutral-800 pt-4 text-center text-xs leading-5 text-neutral-500">
           Access is restricted to authorized LFMS personnel. Public account registration is disabled.
-        </p>
+        </footer>
       </section>
     </main>
   );
