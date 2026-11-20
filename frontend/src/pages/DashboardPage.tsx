@@ -8,7 +8,6 @@ import {
   Building2,
   CalendarClock,
   CalendarDays,
-  CheckCircle2,
   ClipboardList,
   FileBarChart,
   LayoutGrid,
@@ -236,7 +235,7 @@ export default function DashboardPage() {
             })}
           </div>
         ) : !error ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-5 py-10 text-center"><LayoutGrid className="mx-auto h-6 w-6 text-muted-foreground/60" /><p className="mt-3 text-sm font-medium">No operational metrics available</p><p className="mt-1 text-xs text-muted-foreground">There are no metric values to display for this account right now.</p></div>
+          <div className="rounded-2xl border border-dashed border-border bg-card px-5 py-10 text-center"><LayoutGrid className="mx-auto h-6 w-6 text-muted-foreground/60" /><p className="mt-3 text-sm font-medium">No inventory metrics available</p><p className="mt-1 text-xs text-muted-foreground">Inventory analytics are unavailable for this account.</p></div>
         ) : null}
       </section>
 
@@ -250,7 +249,7 @@ export default function DashboardPage() {
 
       <section aria-labelledby="announcements-heading" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div><h2 id="announcements-heading" className="text-base font-semibold tracking-tight">Notes &amp; announcements</h2><p className="mt-1 text-sm text-muted-foreground">Current published updates.</p></div>
+          <div><h2 id="announcements-heading" className="text-base font-semibold tracking-tight">Announcements</h2><p className="mt-1 text-sm text-muted-foreground">Current published updates.</p></div>
           <Link to="/announcements" className="shrink-0 text-sm font-semibold hover:underline">View all</Link>
         </div>
         {dashboard?.announcements?.length ? (
