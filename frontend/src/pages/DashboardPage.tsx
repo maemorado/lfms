@@ -32,22 +32,6 @@ type ReservationSummary = {
   facilities?: { name?: string };
 };
 
-type NotificationSummary = {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-};
-
-type ActivitySummary = {
-  id: string;
-  action: string;
-  module: string;
-  record_id: string | null;
-  created_at: string;
-  profiles?: { full_name?: string | null } | null;
-};
-
 type AnnouncementSummary = {
   id: string;
   title: string;
@@ -61,9 +45,7 @@ type DashboardResponse = {
   metrics?: Record<string, Record<string, number>>;
   current_reservations?: ReservationSummary[];
   upcoming_reservations?: ReservationSummary[];
-  recent_activity?: ActivitySummary[];
   announcements?: AnnouncementSummary[];
-  recent_notifications?: NotificationSummary[];
 };
 
 type ModuleLink = {
@@ -237,7 +219,7 @@ export default function DashboardPage() {
 
       <section aria-labelledby="overview-heading">
         <div className="mb-4 flex items-end justify-between gap-3">
-          <div><h2 id="overview-heading" className="text-base font-semibold tracking-tight">Operational overview</h2><p className="mt-1 text-sm text-muted-foreground">Live figures returned by the LFMS dashboard service.</p></div>
+          <div><h2 id="overview-heading" className="text-base font-semibold tracking-tight">Inventory analytics</h2><p className="mt-1 text-sm text-muted-foreground">Active inventory totals by item type.</p></div>
           {loading && <span className="text-xs text-muted-foreground">Loading metrics…</span>}
         </div>
         {error && <div role="alert" className="mb-4 flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-destructive">{error}</p><button type="button" onClick={() => void loadDashboard(true)} className="text-left text-sm font-semibold text-destructive underline underline-offset-4">Try again</button></div>}
@@ -258,60 +240,31 @@ export default function DashboardPage() {
         ) : null}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section aria-labelledby="calendar-heading" className="space-y-4">
+        <div><h2 id="calendar-heading" className="text-base font-semibold tracking-tight">Reservation calendar</h2><p className="mt-1 text-sm text-muted-foreground">Current and upcoming facility reservations.</p></div>
+        <div className="grid gap-4 xl:grid-cols-2">
         <ReservationList title="Happening now" description="Reservations currently in progress" items={dashboard?.current_reservations ?? []} emptyMessage="There are no current reservations." />
         <ReservationList title="Coming up" description="Your next scheduled reservations" items={dashboard?.upcoming_reservations ?? []} emptyMessage="There are no upcoming reservations." upcoming />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div><h2 className="text-base font-semibold tracking-tight">Recent activity</h2><p className="mt-1 text-sm text-muted-foreground">Latest recorded actions in your authorized workspace scope.</p></div>
-            <Link to="/activity" className="shrink-0 text-sm font-semibold hover:underline">View history</Link>
-          </div>
-          {dashboard?.recent_activity?.length ? (
-            <ul className="mt-4 divide-y divide-border">
-              {dashboard.recent_activity.map((item) => (
-                <li key={item.id} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm font-medium">{item.action.replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.profiles?.full_name || "Workspace member"} · {item.module.replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.created_at)}</p>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-7 text-center text-sm text-muted-foreground">No recent activity is available.</p>}
-        </article>
-
-        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div><h2 className="text-base font-semibold tracking-tight">Announcements</h2><p className="mt-1 text-sm text-muted-foreground">Current published updates.</p></div>
-            <Link to="/announcements" className="shrink-0 text-sm font-semibold hover:underline">View all</Link>
-          </div>
-          {dashboard?.announcements?.length ? (
-            <ul className="mt-4 space-y-3">
-              {dashboard.announcements.map((item) => (
-                <li key={item.id} className="rounded-xl bg-muted/50 p-4">
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  {item.category && <p className="mt-1 text-xs capitalize text-muted-foreground">{item.category.replaceAll("_", " ")}</p>}
-                  <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">{item.content}</p>
-                  <p className="mt-2 text-[11px] text-muted-foreground">Published {formatDateTime(item.published_at)}</p>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-7 text-center text-sm text-muted-foreground">No current announcements.</p>}
-        </article>
-      </section>
-
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div><h2 className="text-base font-semibold tracking-tight">Recent notifications</h2><p className="mt-1 text-sm text-muted-foreground">The latest updates delivered to your account.</p></div>
-          {can("notifications.view_own") && <Link to="/notifications" className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline">View all <ArrowRight className="h-4 w-4" /></Link>}
         </div>
-        {dashboard?.recent_notifications?.length ? (
+      </section>
+
+      <section aria-labelledby="announcements-heading" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div><h2 id="announcements-heading" className="text-base font-semibold tracking-tight">Notes &amp; announcements</h2><p className="mt-1 text-sm text-muted-foreground">Current published updates.</p></div>
+          <Link to="/announcements" className="shrink-0 text-sm font-semibold hover:underline">View all</Link>
+        </div>
+        {dashboard?.announcements?.length ? (
           <ul className="mt-4 grid gap-3 md:grid-cols-2">
-            {dashboard.recent_notifications.map((item) => <li key={item.id} className="flex gap-3 rounded-xl bg-muted/50 p-4"><span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground"><Bell className="h-4 w-4" /></span><div className="min-w-0"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{item.message}</p><p className="mt-2 text-[11px] text-muted-foreground">{formatDateTime(item.created_at)}</p></div></li>)}
+            {dashboard.announcements.map((item) => (
+              <li key={item.id} className="rounded-xl bg-muted/50 p-4">
+                <p className="text-sm font-semibold">{item.title}</p>
+                {item.category && <p className="mt-1 text-xs capitalize text-muted-foreground">{item.category.replaceAll("_", " ")}</p>}
+                <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">{item.content}</p>
+                <p className="mt-2 text-[11px] text-muted-foreground">Published {formatDateTime(item.published_at)}</p>
+              </li>
+            ))}
           </ul>
-        ) : <div className="mt-4 rounded-xl border border-dashed border-border px-4 py-7 text-center"><CheckCircle2 className="mx-auto h-5 w-5 text-muted-foreground/60" /><p className="mt-2 text-sm text-muted-foreground">No recent notifications.</p></div>}
+        ) : <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-7 text-center text-sm text-muted-foreground">No current announcements.</p>}
       </section>
 
       <section>
