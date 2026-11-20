@@ -65,7 +65,7 @@ export default function LoginPage() {
     const normalizedEmail = email.trim();
     const nextEmailError = !normalizedEmail
       ? "Enter your email address."
-      : !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)
+      : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
         ? "Enter a valid email address."
         : null;
     const nextPasswordError = password ? null : "Enter your password.";
