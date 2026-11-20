@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useState} from "react";
 import {Bell,CheckCheck} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import {useAuth} from "@/contexts/AuthContext";
@@ -7,8 +7,7 @@ import {getUnreadNotificationCount,listNotifications,markNotificationRead,notifi
 export default function NotificationBell(){
  const {can}=useAuth();const navigate=useNavigate();const [count,setCount]=useState(0);const [items,setItems]=useState<LfmsNotification[]>([]);const [open,setOpen]=useState(false);const [error,setError]=useState<string|null>(null);
  const refresh=useCallback(async()=>{if(!can("notifications.view_own"))return;try{setCount(await getUnreadNotificationCount());}catch{setError("Notifications are temporarily unavailable.");}},[can]);
- useEffect(()=>{void refresh();const timer=window.setInterval(()=>void refresh(),60000);return()=>window.clearInterval(timer);},[refresh]);
- const toggle=async()=>{const next=!open;setOpen(next);if(next){setError(null);try{setItems((await listNotifications({page:1,per_page:6})).notifications);}catch{setError("Unable to load recent notifications.");}}};
+ const toggle=async()=>{const next=!open;setOpen(next);if(next){setError(null);try{const [unread,listed]=await Promise.all([getUnreadNotificationCount(),listNotifications({page:1,per_page:6})]);setCount(unread);setItems(listed.notifications);}catch{setError("Unable to load recent notifications.");}}};
  const openItem=async(item:LfmsNotification)=>{try{if(!item.read_at)await markNotificationRead(item.id);navigate(notificationDestination(item)??"/notifications");setOpen(false);void refresh();}catch{setError("Unable to open this notification.");}};
  if(!can("notifications.view_own"))return null;
  return <div className="relative"><button type="button" onClick={()=>void toggle()} aria-label={`Notifications, ${count} unread`} aria-expanded={open} className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:bg-muted"><Bell className="h-5 w-5"/>{count>0&&<span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">{count>99?"99+":count}</span>}</button>
