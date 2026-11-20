@@ -16,7 +16,9 @@ const apiBaseUrl =
 export const api = axios.create({
   baseURL: apiBaseUrl,
   headers: { Accept: "application/json", "Content-Type": "application/json" },
-  timeout: 15000,
+  // Allow protected API calls to complete their Supabase auth, authorization,
+  // and data reads without the browser aborting at the previous 15-second limit.
+  timeout: 45000,
 });
 
 api.interceptors.request.use(async (config) => {
