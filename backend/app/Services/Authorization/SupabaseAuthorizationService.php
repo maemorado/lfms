@@ -3,6 +3,7 @@
 namespace App\Services\Authorization;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -35,11 +36,31 @@ class SupabaseAuthorizationService
             ->timeout((int) config('supabase.auth_user_timeout', 10));
 
         try {
-            $profileResponse = $client->get($baseUrl.'/rest/v1/profiles', [
-                'select' => 'id,full_name,email,employee_id,status',
-                'id' => 'eq.'.$userId,
-                'limit' => 1,
+            // Profile and role assignments are independent reads. Fetch them
+            // concurrently so slow Supabase round trips do not consume the
+            // frontend's request window one after another.
+            $responses = Http::pool(fn (Pool $pool) => [
+                'profile' => $pool->as('profile')->acceptJson()->withHeaders([
+                    'apikey' => $publishableKey,
+                    'Authorization' => 'Bearer '.$accessToken,
+                ])->timeout((int) config('supabase.auth_user_timeout', 10))
+                    ->get($baseUrl.'/rest/v1/profiles', [
+                        'select' => 'id,full_name,email,employee_id,status',
+                        'id' => 'eq.'.$userId,
+                        'limit' => 1,
+                    ]),
+                'roles' => $pool->as('roles')->acceptJson()->withHeaders([
+                    'apikey' => $publishableKey,
+                    'Authorization' => 'Bearer '.$accessToken,
+                ])->timeout((int) config('supabase.auth_user_timeout', 10))
+                    ->get($baseUrl.'/rest/v1/user_roles', [
+                        'select' => 'role_id,roles!inner(name)',
+                        'user_id' => 'eq.'.$userId,
+                    ]),
             ]);
+
+            $profileResponse = $responses['profile'];
+            $roleResponse = $responses['roles'];
 
             if (!$profileResponse->successful()) {
                 throw new \RuntimeException('Unable to verify the LFMS profile through Supabase.');
@@ -53,11 +74,6 @@ class SupabaseAuthorizationService
             if (!is_array($profile) || ($profile['id'] ?? null) !== $userId || ($profile['status'] ?? null) !== 'active') {
                 return null;
             }
-
-            $roleResponse = $client->get($baseUrl.'/rest/v1/user_roles', [
-                'select' => 'role_id,roles!inner(name)',
-                'user_id' => 'eq.'.$userId,
-            ]);
 
             if (!$roleResponse->successful()) {
                 throw new \RuntimeException('Unable to retrieve LFMS role assignments.');
