@@ -130,22 +130,45 @@ final class DashboardReportingApiTest extends TestCase
         );
     }
 
-    public function test_admin_role_controls_global_dashboard_scope_without_requiring_reports_permission(): void
+    public function test_admin_dashboard_fetches_only_requested_widgets_without_user_scope(): void
     {
-        $this->fakeSupabase('admin', ['profile.view_own', 'audit.view', 'facilities.view', 'facilities.manage', 'reservations.view', 'reservations.manage', 'inventory.view', 'inventory.manage', 'borrowing.view', 'borrowing.manage', 'maintenance.view', 'maintenance.manage', 'incidents.view', 'incidents.manage', 'notifications.view_own', 'notifications.manage']);
+        $this->fakeSupabase('admin', ['profile.view_own', 'audit.view', 'facilities.view', 'reservations.view', 'inventory.view', 'notifications.view_own']);
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
             ->assertOk()
-            ->assertJsonPath('data.role', 'admin');
+            ->assertJsonPath('data.role', 'admin')
+            ->assertJsonStructure([
+                'data' => [
+                    'metrics' => ['inventory' => ['total', 'equipment', 'consumables']],
+                    'current_reservations',
+                    'upcoming_reservations',
+                    'announcements',
+                ],
+            ])
+            ->assertJsonMissingPath('data.recent_activity')
+            ->assertJsonMissingPath('data.recent_notifications');
 
         Http::assertSent(fn (ClientRequest $request) =>
-            str_contains($request->url(), '/rest/v1/facilities')
-            && !array_key_exists('user_id', $this->parseQuery($request))
+            str_contains($request->url(), '/rest/v1/inventory_items')
+            && ($this->parseQuery($request)['status'] ?? null) === 'eq.active'
         );
         Http::assertSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/reservations')
             && !array_key_exists('requester_id', $this->parseQuery($request))
+            && $request->hasHeader('Authorization', 'Bearer '.self::TOKEN)
+        );
+        Http::assertSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/announcements')
+            && ($this->parseQuery($request)['status'] ?? null) === 'eq.published'
+        );
+        Http::assertNotSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/facilities')
+            || str_contains($request->url(), '/rest/v1/activity_logs')
+            || str_contains($request->url(), '/rest/v1/notifications')
+            || str_contains($request->url(), '/rest/v1/borrow_requests')
+            || str_contains($request->url(), '/rest/v1/maintenance_requests')
+            || str_contains($request->url(), '/rest/v1/incident_reports')
         );
 
         // Dashboard scope is role-based, but reports remain permission-based.
@@ -153,57 +176,54 @@ final class DashboardReportingApiTest extends TestCase
             ->getJson('/api/v1/reports?report=reservations')
             ->assertForbidden();
     }
-
-    public function test_staff_with_reports_permission_remains_scoped_to_their_own_records(): void
+    public function test_staff_dashboard_loads_only_allowed_widgets_and_scopes_reservations(): void
     {
-        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reports.view', 'reservations.view', 'facilities.view', 'inventory.view', 'borrowing.view', 'maintenance.view', 'incidents.view', 'notifications.view_own'], self::STAFF_ID);
+        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reports.view', 'reservations.view', 'inventory.view', 'notifications.view_own'], self::STAFF_ID);
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
             ->assertOk()
             ->assertJsonPath('data.role', 'staff_sa');
 
+        Http::assertSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/inventory_items')
+            && $request->hasHeader('Authorization', 'Bearer '.self::TOKEN)
+        );
+        Http::assertSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/reservations')
+            && ($this->parseQuery($request)['requester_id'] ?? null) === 'eq.'.self::STAFF_ID
+            && $request->hasHeader('Authorization', 'Bearer '.self::TOKEN)
+        );
         Http::assertNotSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/facilities')
-            || str_contains($request->url(), '/rest/v1/inventory_items')
+            || str_contains($request->url(), '/rest/v1/activity_logs')
+            || str_contains($request->url(), '/rest/v1/notifications')
+            || str_contains($request->url(), '/rest/v1/borrow_requests')
+            || str_contains($request->url(), '/rest/v1/maintenance_requests')
+            || str_contains($request->url(), '/rest/v1/incident_reports')
         );
 
-        $ownershipFilters = [
-            'reservations' => 'requester_id',
-            'borrow_requests' => 'borrower_id',
-            'maintenance_requests' => 'reported_by',
-            'incident_reports' => 'reported_by',
-            'activity_logs' => 'user_id',
-            'notifications' => 'user_id',
-        ];
-
-        foreach ($ownershipFilters as $table => $column) {
-            Http::assertSent(fn (ClientRequest $request) =>
-                str_contains($request->url(), '/rest/v1/'.$table)
-                && ($this->parseQuery($request)[$column] ?? null) === 'eq.'.self::STAFF_ID
-                && $request->hasHeader('Authorization', 'Bearer '.self::TOKEN)
-            );
-        }
-
-        // Reporting permission cannot elevate the assigned staff role.
+        // Reporting permission cannot expand dashboard data beyond the requested widgets.
         Http::assertNotSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/activity_logs')
-            && !array_key_exists('user_id', $this->parseQuery($request))
         );
     }
 
-    public function test_dashboard_returns_supabase_activity_announcements_reservations_and_notifications(): void
+    public function test_staff_without_inventory_permission_does_not_fetch_inventory_analytics(): void
     {
-        $activity = [[
-            'id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-            'user_id' => self::STAFF_ID,
-            'action' => 'reservation_created',
-            'module' => 'reservations',
-            'record_id' => null,
-            'metadata' => [],
-            'created_at' => '2026-11-13T08:00:00Z',
-            'profiles' => ['id' => self::STAFF_ID, 'full_name' => 'Test Staff'],
-        ]];
+        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reservations.view'], self::STAFF_ID);
+
+        $this->withToken(self::TOKEN)
+            ->getJson('/api/v1/dashboard')
+            ->assertOk()
+            ->assertJsonMissingPath('data.metrics.inventory');
+
+        Http::assertNotSent(fn (ClientRequest $request) =>
+            str_contains($request->url(), '/rest/v1/inventory_items')
+        );
+    }
+    public function test_dashboard_returns_only_inventory_analytics_calendar_and_announcements(): void
+    {
         $announcements = [[
             'id' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
             'title' => 'Laboratory update',
@@ -220,39 +240,31 @@ final class DashboardReportingApiTest extends TestCase
             'status' => 'approved',
             'facilities' => ['id' => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'name' => 'Chemistry Lab', 'code' => 'LAB-01'],
         ]];
-        $notifications = [[
-            'id' => 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-            'title' => 'Reservation update',
-            'message' => 'Your reservation has been approved.',
-            'type' => 'reservation',
-            'read_at' => null,
-            'created_at' => '2026-11-13T09:00:00Z',
-        ]];
 
-        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reservations.view', 'facilities.view', 'inventory.view', 'borrowing.view', 'maintenance.view', 'incidents.view', 'notifications.view_own'], self::STAFF_ID, [
-            'activity_logs' => $activity,
+        $this->fakeSupabase('staff_sa', ['profile.view_own', 'reservations.view', 'inventory.view'], self::STAFF_ID, [
             'announcements' => $announcements,
             'reservations' => $reservations,
-            'notifications' => $notifications,
+            'inventory_items' => [
+                ['id' => '11111111-aaaa-4111-8111-111111111111'],
+                ['id' => '22222222-aaaa-4222-8222-222222222222'],
+            ],
         ]);
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
             ->assertOk()
-            ->assertJsonPath('data.recent_activity.0.action', 'reservation_created')
-            ->assertJsonPath('data.recent_activity.0.profiles.full_name', 'Test Staff')
             ->assertJsonPath('data.announcements.0.title', 'Laboratory update')
             ->assertJsonPath('data.current_reservations.0.facilities.name', 'Chemistry Lab')
-            ->assertJsonPath('data.recent_notifications.0.title', 'Reservation update')
-            ->assertJsonPath('data.metrics.reservations.total', 1)
-            ->assertJsonPath('data.metrics.borrowing.requests', 0)
-            ->assertJsonPath('data.metrics.notifications.unread', 1)
-            ->assertJsonPath('data.metrics.announcements.published', 1);
+            ->assertJsonPath('data.metrics.inventory.total', 2)
+            ->assertJsonMissingPath('data.recent_activity')
+            ->assertJsonMissingPath('data.recent_notifications')
+            ->assertJsonMissingPath('data.metrics.borrowing')
+            ->assertJsonMissingPath('data.metrics.notifications')
+            ->assertJsonMissingPath('data.metrics.announcements');
     }
-
     public function test_dashboard_does_not_report_zero_when_postgrest_omits_exact_count_metadata(): void
     {
-        $this->fakeSupabase('admin', ['profile.view_own', 'audit.view', 'facilities.view', 'facilities.manage', 'reservations.view', 'reservations.manage', 'inventory.view', 'inventory.manage', 'borrowing.view', 'borrowing.manage', 'maintenance.view', 'maintenance.manage', 'incidents.view', 'incidents.manage', 'notifications.view_own', 'notifications.manage'], self::ADMIN_ID, [], 'facilities');
+        $this->fakeSupabase('admin', ['profile.view_own', 'audit.view', 'facilities.view', 'facilities.manage', 'reservations.view', 'reservations.manage', 'inventory.view', 'inventory.manage', 'borrowing.view', 'borrowing.manage', 'maintenance.view', 'maintenance.manage', 'incidents.view', 'incidents.manage', 'notifications.view_own', 'notifications.manage'], self::ADMIN_ID, [], 'inventory_items');
 
         $this->withToken(self::TOKEN)
             ->getJson('/api/v1/dashboard')
@@ -283,10 +295,10 @@ final class DashboardReportingApiTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_dashboard_published_announcement_metric_excludes_expired_announcements(): void
+    public function test_dashboard_published_announcements_exclude_expired_announcements(): void
     {
         $this->fakeSupabase();
-        app(DashboardReportingService::class)->dashboard(self::TOKEN, self::ADMIN_ID, true);
+        app(DashboardReportingService::class)->dashboard(self::TOKEN, self::ADMIN_ID, true, true);
 
         Http::assertSent(fn (ClientRequest $request) =>
             str_contains($request->url(), '/rest/v1/announcements')
